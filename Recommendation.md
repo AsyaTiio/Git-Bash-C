@@ -106,12 +106,3 @@ git commit -m "Quest 10: gitlab manual"
 git push origin develop
 ```
 
----
-
-## Проверка
-
-- [ ] `src/gitlab_manual.md`
-- [ ] 4 заголовка + 4 скриншота
-- [ ] feature от `develop`, MR в `develop`
-- [ ] issue + комментарий на скрине
-- [ ] push в `develop`
