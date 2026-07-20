@@ -143,24 +143,31 @@ printf("Hello, %d!", name);
 
 Операторы: `+` `-` `*` `/`. Для `int` деление целочисленное: `8 / 2 → 4`, `3 / 2 → 1`.
 
-**Проверка ввода:** `scanf` возвращает, сколько значений успешно прочитал.
-
-```c
-if (scanf("%d %d", &a, &b) != 2) {
-  printf("n/a");
-  return 0;
-}
-```
-
-**Деление на ноль** — нельзя. Отдельная ветка `if (b == 0)`.
-
 Порядок вывода: сумма, разность, произведение, частное — через пробел, **без** пробела в конце.
+
+### Почему одного `scanf != 2` мало
+
+`scanf("%d %d")` читает **целые куски** и останавливается на первом «плохом» символе:
+
+| Ввод | Что делает наивный `scanf` | Нужно |
+|------|----------------------------|--------|
+| `abc 2` | вернёт `0` | `n/a` |
+| `12.3 10` | прочитает `12`, на `.` сломается → вернёт `1` | `n/a` |
+| `12 10.5` | прочитает `12` и `10`, **вернёт `2`**, хвост `.5` останется | `n/a` |
+| `8 2` | ок | `10 6 16 4` |
+| `1 0` | ок, но `/` нельзя | `1 1 0 n/a` |
+
+Поэтому после успешного чтения двух `int` проверяем **хвост** через `getchar()`: допускаем только пробелы/таб и конец строки (`\n` или `EOF`). Любой другой символ (`.`, буква, третье число) → `n/a`.
+
+**Деление на ноль** — не вся строка `n/a`, а только частное (как в таблице): `1 1 0 n/a`.
 
 | Ввод | Вывод |
 |------|-------|
 | `8 2` | `10 6 16 4` |
 | `1 0` | `1 1 0 n/a` |
 | `3 2` | `5 1 6 1` |
+| `12 10.5` | `n/a` |
+| `a 1` | `n/a` |
 
 ---
 
@@ -176,12 +183,14 @@ int max2(int a, int b) {  // определение
 }
 ```
 
-`12.3` в `%d` — не целое → `scanf` ≠ 2 → `n/a`.
+Та же проверка ввода, что в Quest 3: `scanf` + хвост. Равные числа → вывести это число.
 
 | Ввод | Вывод |
 |------|-------|
 | `3 2` | `3` |
+| `5 5` | `5` |
 | `12.3 10` | `n/a` |
+| `3 2.0` | `n/a` |
 
 ---
 
@@ -199,12 +208,18 @@ gcc -std=c11 -Wall -Werror -Wextra src/important_function.c -o prog -lm
 y = 7\cdot10^{-3}\,x^{4} + \frac{(22.8\cdot x^{1/3}-10^{3})\cdot x + 3}{x^{2}/2} - x\cdot(10+x)^{2/x} - 1.01
 \]
 
-Вывод с одним знаком: `printf("%.1f", y);`  
-При `x == 0` знаменатель и степень `2/x` ломаются → `n/a`.
+Вывод с одним знаком: `printf("%.1f", y);`
+
+Граничные случаи → `n/a`:
+- не число / хвост после числа (`1abc`);
+- `x == 0` (деление и `2/x`);
+- `x < 0` — `pow(x, 1/3)` и `(10+x)^(2/x)` часто дают `NaN`/`Inf`;
+- после счёта `isnan(y)` / `isinf(y)`.
 
 | Ввод | Вывод |
 |------|-------|
 | `1` | `-2070.4` |
+| `0` | `n/a` |
 
 ---
 
@@ -225,7 +240,7 @@ if (fabs(res) < EPSILON)
 
 ## 7. Геометрия без `math.h` (Quest 7)
 
-Окружность: \(x^{2} + y^{2} = 25\) (радиус 5). Точка **строго внутри**:
+Окружность: \(x^{2} + y^{2} = 25\) (радиус 5). Точка **строго внутри** (`<`, не `<=`):
 
 ```c
 if (x * x + y * y < 25.0)
@@ -234,11 +249,13 @@ else
   printf("MISS");
 ```
 
-Достаточно `<stdio.h>`: квадрат через умножение, без `sqrt`.
+Достаточно `<stdio.h>`: квадрат через умножение, без `sqrt`. На границе (`5 0` → сумма квадратов `25`) — `MISS`. Плохой ввод → `n/a`.
 
 | Ввод | Вывод |
 |------|-------|
 | `1.5 1.5` | `GOTCHA` |
+| `5 0` | `MISS` |
+| `a 1` | `n/a` |
 
 ---
 
@@ -248,7 +265,7 @@ else
 |---|------|----------|
 | 1 | `hello.c` | `#include`, `main`, `printf` |
 | 2 | `named_hello.c` | `int`, `scanf`, `%d` |
-| 3 | `arithmetic.c` | операторы, `if`, `n/a`, деление на 0 |
+| 3 | `arithmetic.c` | операторы, `if`, хвост после `scanf`, `/0` → `n/a` |
 | 4 | `max.c` | своя функция, тернарный `?:` |
 | 5 | `important_function.c` | `double`, `math.h`, `pow`, `%.1f` |
 | 6 | `float_compare.c` | epsilon, `fabs` |
@@ -335,6 +352,8 @@ git push origin develop
 
 ### Quest 3 — `arithmetic.c`
 
+Главная ловушка: `12 10.5` — `scanf` вернёт `2`, но это **не** два чистых int. После чтения смотрим хвост.
+
 ```c
 #include <stdio.h>
 
@@ -344,6 +363,15 @@ int main(void) {
     printf("n/a");
     return 0;
   }
+  int ch = getchar();
+  while (ch == ' ' || ch == '\t') {
+    ch = getchar();
+  }
+  if (ch != '\n' && ch != EOF) {
+    printf("n/a");
+    return 0;
+  }
+
   int sum = a + b;
   int diff = a - b;
   int prod = a * b;
@@ -362,6 +390,12 @@ echo "8 2" | ./arithmetic
 # ожидается: 10 6 16 4
 echo "1 0" | ./arithmetic
 # ожидается: 1 1 0 n/a
+echo "3 2" | ./arithmetic
+# ожидается: 5 1 6 1
+echo "12 10.5" | ./arithmetic
+# ожидается: n/a
+echo "a 1" | ./arithmetic
+# ожидается: n/a
 
 git add arithmetic.c
 git commit -m "Quest 3: arithmetic.c"
@@ -372,6 +406,8 @@ git push origin develop
 
 ### Quest 4 — `max.c`
 
+Та же проверка «хвоста», что в Quest 3. Равные числа → само число.
+
 ```c
 #include <stdio.h>
 
@@ -380,6 +416,14 @@ int max2(int a, int b);
 int main(void) {
   int a = 0, b = 0;
   if (scanf("%d %d", &a, &b) != 2) {
+    printf("n/a");
+    return 0;
+  }
+  int ch = getchar();
+  while (ch == ' ' || ch == '\t') {
+    ch = getchar();
+  }
+  if (ch != '\n' && ch != EOF) {
     printf("n/a");
     return 0;
   }
@@ -396,7 +440,11 @@ int max2(int a, int b) {
 gcc -std=c11 -Wall -Werror -Wextra max.c -o max
 echo "3 2" | ./max
 # ожидается: 3
+echo "5 5" | ./max
+# ожидается: 5
 echo "12.3 10" | ./max
+# ожидается: n/a
+echo "3 2.0" | ./max
 # ожидается: n/a
 
 git add max.c
@@ -418,7 +466,15 @@ int main(void) {
     printf("n/a");
     return 0;
   }
-  if (x == 0.0) {
+  int ch = getchar();
+  while (ch == ' ' || ch == '\t') {
+    ch = getchar();
+  }
+  if (ch != '\n' && ch != EOF) {
+    printf("n/a");
+    return 0;
+  }
+  if (x <= 0.0) {
     printf("n/a");
     return 0;
   }
@@ -434,10 +490,14 @@ int main(void) {
 }
 ```
 
+`x <= 0` закрывает деление на ноль и проблемный `pow` для отрицательных. Если автотест даст отрицательный `x` с ожидаемым числом — убери эту проверку и оставь только `isnan`/`isinf`.
+
 ```bash
 gcc -std=c11 -Wall -Werror -Wextra important_function.c -o important -lm
 echo 1 | ./important
 # ожидается: -2070.4
+echo 0 | ./important
+# ожидается: n/a
 
 git add important_function.c
 git commit -m "Quest 5: important_function.c"
@@ -490,12 +550,22 @@ git push origin develop
 
 ### Quest 7 — `crack.c`
 
+Строго внутри: `< 25`. На окружности (`5 0`) — `MISS`.
+
 ```c
 #include <stdio.h>
 
 int main(void) {
   double x = 0.0, y = 0.0;
   if (scanf("%lf %lf", &x, &y) != 2) {
+    printf("n/a");
+    return 0;
+  }
+  int ch = getchar();
+  while (ch == ' ' || ch == '\t') {
+    ch = getchar();
+  }
+  if (ch != '\n' && ch != EOF) {
     printf("n/a");
     return 0;
   }
@@ -511,6 +581,10 @@ int main(void) {
 gcc -std=c11 -Wall -Werror -Wextra crack.c -o crack
 echo "1.5 1.5" | ./crack
 # ожидается: GOTCHA
+echo "5 0" | ./crack
+# ожидается: MISS
+echo "a 1" | ./crack
+# ожидается: n/a
 
 git add crack.c
 git commit -m "Quest 7: crack.c"
