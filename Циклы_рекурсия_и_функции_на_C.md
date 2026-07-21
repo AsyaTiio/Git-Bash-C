@@ -426,6 +426,12 @@ git push origin develop
 
 ### Quest 2 — `char_decode.c`
 
+Ниже **два варианта** — сдай любой один.
+
+#### Вариант A — полный
+
+Свои `to_hex` / `from_hex`, разбор посимвольно через `getchar`.
+
 ```c
 #include <stdio.h>
 
@@ -572,6 +578,101 @@ int main(int argc, char *argv[]) {
 
 **Как работает:** `argv[1]` выбирает режим. Кодирование: символ → две hex-цифры (`W` → `57`), между ними пробел; после каждой буквы проверяем, что дальше пробел или конец — иначе `WORLD` без пробелов даёт `n/a`. Декодирование: пара hex → символ (`48` → `H`); слипшиеся цифры без пробелов — тоже ошибка.
 
+#### Вариант B — попроще
+
+Hex через `printf("%02X")` / `scanf("%2x")` — `%` здесь в формате строки, это не операция остатка. Проверка пробелов та же.
+
+```c
+#include <stdio.h>
+
+/* Символ → две hex-цифры. 'W' → 57 */
+void encode_char(char c) {
+  printf("%02X", (unsigned char)c);
+}
+
+/* Читает ровно две hex-цифры → код символа; ошибка → -1 */
+int decode_char(void) {
+  unsigned int x = 0;
+  if (scanf("%2x", &x) != 1) {
+    return -1;
+  }
+  return (int)x;
+}
+
+int do_encode(void) {
+  int first = 1;
+  int c = getchar();
+  if (c == '\n' || c == EOF) {
+    return 1;
+  }
+  while (1) {
+    if (c == ' ') {
+      return 1;
+    }
+    int next = getchar();
+    if (next != ' ' && next != '\n' && next != EOF) {
+      return 1;                   /* WORLD без пробелов */
+    }
+    if (!first) {
+      putchar(' ');
+    }
+    encode_char((char)c);
+    first = 0;
+    if (next == '\n' || next == EOF) {
+      return 0;
+    }
+    c = getchar();
+    if (c == '\n' || c == EOF) {
+      return 1;
+    }
+  }
+}
+
+int do_decode(void) {
+  int first = 1;
+  while (1) {
+    int val = decode_char();
+    if (val < 0) {
+      return 1;
+    }
+    int next = getchar();
+    /* после пары — пробел или конец; иначе 4845... слиплось */
+    if (next != ' ' && next != '\n' && next != EOF) {
+      return 1;
+    }
+    if (!first) {
+      putchar(' ');
+    }
+    putchar(val);
+    first = 0;
+    if (next == '\n' || next == EOF) {
+      return 0;
+    }
+  }
+}
+
+int main(int argc, char *argv[]) {
+  int err = 0;
+  if (argc != 2) {
+    printf("n/a");
+    return 0;
+  }
+  if (argv[1][0] == '0' && argv[1][1] == '\0') {
+    err = do_encode();
+  } else if (argv[1][0] == '1' && argv[1][1] == '\0') {
+    err = do_decode();
+  } else {
+    err = 1;
+  }
+  if (err) {
+    printf("n/a");
+  }
+  return 0;
+}
+```
+
+**Как работает:** то же по смыслу, но перевод в hex/из hex делает стандартная библиотека. Меньше ручной арифметики с битами.
+
 ```bash
 gcc -std=c11 -Wall -Werror -Wextra char_decode.c -o char_decode
 echo "W O R L D" | ./char_decode 0
@@ -653,6 +754,12 @@ git push origin develop
 
 ### Quest 4 — `door_functions.c`
 
+Ниже **два варианта** — сдай любой один.
+
+#### Вариант A — полный
+
+Отдельные функции на каждую формулу + флаг `ok` через указатель.
+
 ```c
 #include <math.h>
 #include <stdio.h>
@@ -727,6 +834,49 @@ int main(void) {
 ```
 
 **Как работает:** 42 точки от `−π` до `π` с шагом `2π/41`. В каждой точке считаем три формулы; если лемниската или гипербола не определены — печатаем `-`. Массивов нет: посчитали строку → сразу вывели. Результат перенаправляем в `data/door_data.txt`.
+
+#### Вариант B — попроще
+
+Всё в `main`: формулы inline, `-` через обычный `if`.
+
+```c
+#include <math.h>
+#include <stdio.h>
+
+#define PI 3.14159265358979323846
+
+int main(void) {
+  int i;
+  double step = (2.0 * PI) / 41.0;
+
+  for (i = 0; i < 42; i++) {
+    double x = -PI + step * (double)i;
+    double y1 = 1.0 / (1.0 + x * x);
+    double inner = sqrt(1.0 + 4.0 * x * x) - x * x - 1.0;
+
+    printf("%.7f | %.7f | ", x, y1);
+
+    if (inner < 0.0) {
+      printf("-");
+    } else {
+      printf("%.7f", sqrt(inner));
+    }
+
+    printf(" | ");
+
+    if (fabs(x) < 1e-12) {
+      printf("-");
+    } else {
+      printf("%.7f", 1.0 / (x * x));
+    }
+
+    putchar('\n');
+  }
+  return 0;
+}
+```
+
+**Как работает:** тот же интервал и те же формулы, просто без отдельных функций — меньше кода, читать сверху вниз в одном цикле.
 
 ```bash
 gcc -std=c11 -Wall -Werror -Wextra door_functions.c -o door_functions -lm
