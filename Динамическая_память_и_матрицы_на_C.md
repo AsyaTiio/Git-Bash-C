@@ -1723,21 +1723,38 @@ gcc -std=c11 -Wall -Werror -Wextra picture.c -o picture
 
 ### Quest 6 — `matrix_arithmetic.c` (T07D10)
 
-**Суть задания.** Сначала читается код операции: `1` означает сложение, `2` означает умножение, `3` означает транспонирование. Затем читаются размеры и сами матрицы. Если операцию выполнить нельзя, программа выводит `n/a`.
+**Суть задания.** Сначала читается код операции: `1` — сложение, `2` — умножение, `3` — транспонирование. Затем читаются размеры и матрицы. Если операцию выполнить нельзя, выводится `n/a`.
 
-#### Вариант A. Каждая матрица выделяется одним сплошным блоком
+В репозитории обычно уже есть заготовка с прототипами `input`, `output`, `sum`, `mul`, `transpose` и пустым `main`. Нужно дописать вспомогательные функции выделения памяти, реализации и `main`.
+
+**Формат ввода**
+
+| Операция | Что читать после кода |
+|----------|------------------------|
+| `1` сумма | `n m` + матрица A, `n m` + матрица B (размеры совпадают) |
+| `2` умножение | `n k` + A, `k m` + B (`m` столбцов A = `n` строк B) |
+| `3` транспонирование | `n m` + одна матрица |
+
+**Типичные ошибки в заготовке:** `int main()` → `int main(void)`; пустой `main`; для `transpose` нужен указатель на матрицу результата (добавьте 4-й параметр, как в `sum`/`mul`).
+
+**Как работает `input`.** Сначала в `main` читаются `n` и `m`, выделяется матрица, затем `input` считывает только элементы в уже выделённый `int **`.
+
+#### Вариант A. Заготовка репозитория, один блок памяти на матрицу
 
 ```c
 #include <stdio.h>
 #include <stdlib.h>
 
 int **create_matrix(int rows, int cols);
-void free_matrix(int **m);
-int read_matrix(int **m, int rows, int cols);
-void print_matrix(int **m, int rows, int cols);
-void add_matrix(int **a, int **b, int **c, int rows, int cols);
-void mul_matrix(int **a, int **b, int **c, int n, int k, int m);
-void transpose_matrix(int **a, int **c, int rows, int cols);
+void free_matrix(int **matrix);
+
+int input(int **matrix, int *n, int *m);
+void output(int **matrix, int n, int m);
+int sum(int **matrix_first, int n_first, int m_first, int **matrix_second,
+        int n_second, int m_second, int **matrix_result, int *n_result, int *m_result);
+int transpose(int **matrix, int n, int m, int **matrix_result);
+int mul(int **matrix_first, int n_first, int m_first, int **matrix_second,
+        int n_second, int m_second, int **matrix_result, int *n_result, int *m_result);
 
 int main(void) {
     int op;
@@ -1745,6 +1762,8 @@ int main(void) {
     int m1;
     int n2;
     int m2;
+    int n_res;
+    int m_res;
     int **a;
     int **b;
     int **c;
@@ -1754,9 +1773,11 @@ int main(void) {
     a = NULL;
     b = NULL;
     c = NULL;
+  /* код операции */
     if (scanf("%d", &op) != 1 || op < 1 || op > 3) {
         error = 1;
     }
+  /* первая матрица */
     if (error == 0) {
         if (scanf("%d%d", &n1, &m1) != 2 || n1 <= 0 || m1 <= 0) {
             error = 1;
@@ -1769,47 +1790,69 @@ int main(void) {
         }
     }
     if (error == 0) {
-        error = read_matrix(a, n1, m1);
+        error = input(a, &n1, &m1);
     }
+  /* операция 1 — сумма */
     if (error == 0 && op == 1) {
-        if (scanf("%d%d", &n2, &m2) != 2 || n2 <= 0 || m2 <= 0 || n1 != n2 || m1 != m2) {
+        if (scanf("%d%d", &n2, &m2) != 2 || n2 <= 0 || m2 <= 0) {
             error = 1;
-        } else {
+        }
+        if (error == 0 && (n1 != n2 || m1 != m2)) {
+            error = 1;
+        }
+        if (error == 0) {
             b = create_matrix(n2, m2);
             c = create_matrix(n1, m1);
             if (b == NULL || c == NULL) {
                 error = 1;
-            } else {
-                error = read_matrix(b, n2, m2);
-                if (error == 0) {
-                    add_matrix(a, b, c, n1, m1);
-                    print_matrix(c, n1, m1);
-                }
             }
         }
-    } else if (error == 0 && op == 2) {
-        if (scanf("%d%d", &n2, &m2) != 2 || n2 <= 0 || m2 <= 0 || m1 != n2) {
+        if (error == 0) {
+            error = input(b, &n2, &m2);
+        }
+        if (error == 0) {
+            error = sum(a, n1, m1, b, n2, m2, c, &n_res, &m_res);
+        }
+        if (error == 0) {
+            output(c, n_res, m_res);
+        }
+    }
+  /* операция 2 — умножение */
+    if (error == 0 && op == 2) {
+        if (scanf("%d%d", &n2, &m2) != 2 || n2 <= 0 || m2 <= 0) {
             error = 1;
-        } else {
+        }
+        if (error == 0 && m1 != n2) {
+            error = 1;
+        }
+        if (error == 0) {
             b = create_matrix(n2, m2);
             c = create_matrix(n1, m2);
             if (b == NULL || c == NULL) {
                 error = 1;
-            } else {
-                error = read_matrix(b, n2, m2);
-                if (error == 0) {
-                    mul_matrix(a, b, c, n1, m1, m2);
-                    print_matrix(c, n1, m2);
-                }
             }
         }
-    } else if (error == 0 && op == 3) {
+        if (error == 0) {
+            error = input(b, &n2, &m2);
+        }
+        if (error == 0) {
+            error = mul(a, n1, m1, b, n2, m2, c, &n_res, &m_res);
+        }
+        if (error == 0) {
+            output(c, n_res, m_res);
+        }
+    }
+  /* операция 3 — транспонирование */
+    if (error == 0 && op == 3) {
         c = create_matrix(m1, n1);
         if (c == NULL) {
             error = 1;
-        } else {
-            transpose_matrix(a, c, n1, m1);
-            print_matrix(c, m1, n1);
+        }
+        if (error == 0) {
+            error = transpose(a, n1, m1, c);
+        }
+        if (error == 0) {
+            output(c, m1, n1);
         }
     }
     if (error != 0) {
@@ -1821,114 +1864,133 @@ int main(void) {
     return 0;
 }
 
-/* выделяет матрицу одним блоком */
 int **create_matrix(int rows, int cols) {
-    int **m;
+    int **matrix;
     int *data;
     int i;
 
-    m = (int **)malloc((size_t)rows * sizeof(int *) + (size_t)rows * (size_t)cols * sizeof(int));
-    if (m != NULL) {
-        data = (int *)(m + rows);
+    matrix = (int **)malloc((size_t)rows * sizeof(int *) +
+                            (size_t)rows * (size_t)cols * sizeof(int));
+    if (matrix != NULL) {
+        data = (int *)(matrix + rows);
         for (i = 0; i < rows; i++) {
-            m[i] = data + i * cols;
+            matrix[i] = data + i * cols;
         }
     }
-    return m;
+    return matrix;
 }
 
-void free_matrix(int **m) {
-    free(m);
+void free_matrix(int **matrix) {
+    free(matrix);
 }
 
-int read_matrix(int **m, int rows, int cols) {
+/* читает элементы в уже выделённую матрицу rows x cols; 0 — ок, 1 — ошибка */
+int input(int **matrix, int *n, int *m) {
     int i;
     int j;
-    int error;
 
-    error = 0;
-    for (i = 0; i < rows; i++) {
-        for (j = 0; j < cols; j++) {
-            if (scanf("%d", &m[i][j]) != 1) {
-                error = 1;
+    (void)n;
+    (void)m;
+    for (i = 0; i < *n; i++) {
+        for (j = 0; j < *m; j++) {
+            if (scanf("%d", &matrix[i][j]) != 1) {
+                return 1;
             }
         }
     }
-    return error;
+    return 0;
 }
 
-void print_matrix(int **m, int rows, int cols) {
+void output(int **matrix, int n, int m) {
     int i;
     int j;
 
-    for (i = 0; i < rows; i++) {
-        for (j = 0; j < cols; j++) {
+    for (i = 0; i < n; i++) {
+        for (j = 0; j < m; j++) {
             if (j > 0) {
                 printf(" ");
             }
-            printf("%d", m[i][j]);
+            printf("%d", matrix[i][j]);
         }
-        if (i + 1 < rows) {
+        if (i + 1 < n) {
             printf("\n");
         }
     }
 }
 
-void add_matrix(int **a, int **b, int **c, int rows, int cols) {
+int sum(int **matrix_first, int n_first, int m_first, int **matrix_second,
+        int n_second, int m_second, int **matrix_result, int *n_result, int *m_result) {
     int i;
     int j;
 
-    for (i = 0; i < rows; i++) {
-        for (j = 0; j < cols; j++) {
-            c[i][j] = a[i][j] + b[i][j];
+    if (n_first != n_second || m_first != m_second) {
+        return 1;
+    }
+    *n_result = n_first;
+    *m_result = m_first;
+    for (i = 0; i < n_first; i++) {
+        for (j = 0; j < m_first; j++) {
+            matrix_result[i][j] = matrix_first[i][j] + matrix_second[i][j];
         }
     }
+    return 0;
 }
 
-void mul_matrix(int **a, int **b, int **c, int n, int k, int m) {
+int mul(int **matrix_first, int n_first, int m_first, int **matrix_second,
+        int n_second, int m_second, int **matrix_result, int *n_result, int *m_result) {
     int i;
     int j;
     int t;
-    int sum;
+    int sum_val;
 
-    for (i = 0; i < n; i++) {
-        for (j = 0; j < m; j++) {
-            sum = 0;
-            for (t = 0; t < k; t++) {
-                sum += a[i][t] * b[t][j];
+    if (m_first != n_second) {
+        return 1;
+    }
+    *n_result = n_first;
+    *m_result = m_second;
+    for (i = 0; i < n_first; i++) {
+        for (j = 0; j < m_second; j++) {
+            sum_val = 0;
+            for (t = 0; t < m_first; t++) {
+                sum_val += matrix_first[i][t] * matrix_second[t][j];
             }
-            c[i][j] = sum;
+            matrix_result[i][j] = sum_val;
         }
     }
+    return 0;
 }
 
-void transpose_matrix(int **a, int **c, int rows, int cols) {
+int transpose(int **matrix, int n, int m, int **matrix_result) {
     int i;
     int j;
 
-    for (i = 0; i < rows; i++) {
-        for (j = 0; j < cols; j++) {
-            c[j][i] = a[i][j];
+    for (i = 0; i < n; i++) {
+        for (j = 0; j < m; j++) {
+            matrix_result[j][i] = matrix[i][j];
         }
     }
+    return 0;
 }
 ```
 
-**Как работает.** По коду операции программа проверяет, совместимы ли размеры матриц. Затем результат записывается в матрицу `c` и печатается. В конце `main` освобождаются все три указателя, которые могли быть выделены в ходе работы.
+**Как работает.** `create_matrix` выделяет указатели на строки и данные одним `malloc`. `main` читает код операции, размеры первой матрицы, выделяет `a` и вызывает `input`. Для суммы и умножения читается вторая матрица `b`, результат пишется в `c`. Для транспонирования результат — матрица `m × n`. При любой ошибке печатается `n/a`, память освобождается через `free_matrix`.
 
-#### Вариант B. Каждая строка выделяется отдельным `malloc`
+#### Вариант B. Те же функции, каждая строка — отдельный `malloc`
 
 ```c
 #include <stdio.h>
 #include <stdlib.h>
 
 int **create_matrix(int rows, int cols);
-void free_matrix(int **m, int rows);
-int read_matrix(int **m, int rows, int cols);
-void print_matrix(int **m, int rows, int cols);
-void add_matrix(int **a, int **b, int **c, int rows, int cols);
-void mul_matrix(int **a, int **b, int **c, int n, int k, int m);
-void transpose_matrix(int **a, int **c, int rows, int cols);
+void free_matrix(int **matrix, int rows);
+
+int input(int **matrix, int *n, int *m);
+void output(int **matrix, int n, int m);
+int sum(int **matrix_first, int n_first, int m_first, int **matrix_second,
+        int n_second, int m_second, int **matrix_result, int *n_result, int *m_result);
+int transpose(int **matrix, int n, int m, int **matrix_result);
+int mul(int **matrix_first, int n_first, int m_first, int **matrix_second,
+        int n_second, int m_second, int **matrix_result, int *n_result, int *m_result);
 
 int main(void) {
     int op;
@@ -1936,20 +1998,23 @@ int main(void) {
     int m1;
     int n2;
     int m2;
+    int n_res;
+    int m_res;
+    int rows_free_a;
+    int rows_free_b;
+    int rows_free_c;
     int **a;
     int **b;
     int **c;
     int error;
-    int rows_c;
-    int cols_c;
 
     error = 0;
     a = NULL;
     b = NULL;
     c = NULL;
-    rows_c = 0;
-    n1 = 0;
-    n2 = 0;
+    rows_free_a = 0;
+    rows_free_b = 0;
+    rows_free_c = 0;
     if (scanf("%d", &op) != 1 || op < 1 || op > 3) {
         error = 1;
     }
@@ -1963,174 +2028,214 @@ int main(void) {
         if (a == NULL) {
             error = 1;
         } else {
-            error = read_matrix(a, n1, m1);
+            rows_free_a = n1;
         }
     }
+    if (error == 0) {
+        error = input(a, &n1, &m1);
+    }
     if (error == 0 && op == 1) {
-        if (scanf("%d%d", &n2, &m2) != 2 || n2 != n1 || m2 != m1) {
+        if (scanf("%d%d", &n2, &m2) != 2 || n2 <= 0 || m2 <= 0) {
             error = 1;
-        } else {
+        }
+        if (error == 0 && (n1 != n2 || m1 != m2)) {
+            error = 1;
+        }
+        if (error == 0) {
             b = create_matrix(n2, m2);
             c = create_matrix(n1, m1);
-            rows_c = n1;
-            cols_c = m1;
             if (b == NULL || c == NULL) {
                 error = 1;
             } else {
-                error = read_matrix(b, n2, m2);
-                if (error == 0) {
-                    add_matrix(a, b, c, n1, m1);
-                }
+                rows_free_b = n2;
+                rows_free_c = n1;
             }
+        }
+        if (error == 0) {
+            error = input(b, &n2, &m2);
+        }
+        if (error == 0) {
+            error = sum(a, n1, m1, b, n2, m2, c, &n_res, &m_res);
+        }
+        if (error == 0) {
+            output(c, n_res, m_res);
         }
     }
     if (error == 0 && op == 2) {
-        if (scanf("%d%d", &n2, &m2) != 2 || n2 != m1 || m2 <= 0) {
+        if (scanf("%d%d", &n2, &m2) != 2 || n2 <= 0 || m2 <= 0) {
             error = 1;
-        } else {
+        }
+        if (error == 0 && m1 != n2) {
+            error = 1;
+        }
+        if (error == 0) {
             b = create_matrix(n2, m2);
             c = create_matrix(n1, m2);
-            rows_c = n1;
-            cols_c = m2;
             if (b == NULL || c == NULL) {
                 error = 1;
             } else {
-                error = read_matrix(b, n2, m2);
-                if (error == 0) {
-                    mul_matrix(a, b, c, n1, m1, m2);
-                }
+                rows_free_b = n2;
+                rows_free_c = n1;
             }
+        }
+        if (error == 0) {
+            error = input(b, &n2, &m2);
+        }
+        if (error == 0) {
+            error = mul(a, n1, m1, b, n2, m2, c, &n_res, &m_res);
+        }
+        if (error == 0) {
+            output(c, n_res, m_res);
         }
     }
     if (error == 0 && op == 3) {
         c = create_matrix(m1, n1);
-        rows_c = m1;
-        cols_c = n1;
         if (c == NULL) {
             error = 1;
         } else {
-            transpose_matrix(a, c, n1, m1);
+            rows_free_c = m1;
+        }
+        if (error == 0) {
+            error = transpose(a, n1, m1, c);
+        }
+        if (error == 0) {
+            output(c, m1, n1);
         }
     }
-    if (error == 0) {
-        print_matrix(c, rows_c, cols_c);
-    } else {
+    if (error != 0) {
         printf("n/a");
     }
-    free_matrix(a, n1);
-    free_matrix(b, n2);
-    free_matrix(c, rows_c);
+    free_matrix(a, rows_free_a);
+    free_matrix(b, rows_free_b);
+    free_matrix(c, rows_free_c);
     return 0;
 }
 
 int **create_matrix(int rows, int cols) {
-    int **m;
+    int **matrix;
     int i;
     int failed;
 
+    matrix = (int **)malloc((size_t)rows * sizeof(int *));
     failed = 0;
-    m = (int **)malloc((size_t)rows * sizeof(int *));
-    if (m != NULL) {
+    if (matrix != NULL) {
         for (i = 0; i < rows; i++) {
-            m[i] = (int *)malloc((size_t)cols * sizeof(int));
-            if (m[i] == NULL) {
+            matrix[i] = (int *)malloc((size_t)cols * sizeof(int));
+            if (matrix[i] == NULL) {
                 failed = 1;
             }
         }
         if (failed != 0) {
             for (i = 0; i < rows; i++) {
-                free(m[i]);
+                free(matrix[i]);
             }
-            free(m);
-            m = NULL;
+            free(matrix);
+            matrix = NULL;
         }
     }
-    return m;
+    return matrix;
 }
 
-void free_matrix(int **m, int rows) {
+void free_matrix(int **matrix, int rows) {
     int i;
 
-    if (m != NULL) {
+    if (matrix != NULL) {
         for (i = 0; i < rows; i++) {
-            free(m[i]);
+            free(matrix[i]);
         }
-        free(m);
+        free(matrix);
     }
 }
 
-int read_matrix(int **m, int rows, int cols) {
+int input(int **matrix, int *n, int *m) {
     int i;
     int j;
-    int error;
 
-    error = 0;
-    for (i = 0; i < rows; i++) {
-        for (j = 0; j < cols; j++) {
-            if (scanf("%d", &m[i][j]) != 1) {
-                error = 1;
+    (void)n;
+    (void)m;
+    for (i = 0; i < *n; i++) {
+        for (j = 0; j < *m; j++) {
+            if (scanf("%d", &matrix[i][j]) != 1) {
+                return 1;
             }
         }
     }
-    return error;
+    return 0;
 }
 
-void print_matrix(int **m, int rows, int cols) {
+void output(int **matrix, int n, int m) {
     int i;
     int j;
 
-    for (i = 0; i < rows; i++) {
-        for (j = 0; j < cols; j++) {
+    for (i = 0; i < n; i++) {
+        for (j = 0; j < m; j++) {
             if (j > 0) {
                 printf(" ");
             }
-            printf("%d", m[i][j]);
+            printf("%d", matrix[i][j]);
         }
-        if (i + 1 < rows) {
+        if (i + 1 < n) {
             printf("\n");
         }
     }
 }
 
-void add_matrix(int **a, int **b, int **c, int rows, int cols) {
+int sum(int **matrix_first, int n_first, int m_first, int **matrix_second,
+        int n_second, int m_second, int **matrix_result, int *n_result, int *m_result) {
     int i;
     int j;
 
-    for (i = 0; i < rows; i++) {
-        for (j = 0; j < cols; j++) {
-            c[i][j] = a[i][j] + b[i][j];
+    if (n_first != n_second || m_first != m_second) {
+        return 1;
+    }
+    *n_result = n_first;
+    *m_result = m_first;
+    for (i = 0; i < n_first; i++) {
+        for (j = 0; j < m_first; j++) {
+            matrix_result[i][j] = matrix_first[i][j] + matrix_second[i][j];
         }
     }
+    return 0;
 }
 
-void mul_matrix(int **a, int **b, int **c, int n, int k, int m) {
+int mul(int **matrix_first, int n_first, int m_first, int **matrix_second,
+        int n_second, int m_second, int **matrix_result, int *n_result, int *m_result) {
     int i;
     int j;
     int t;
+    int sum_val;
 
-    for (i = 0; i < n; i++) {
-        for (j = 0; j < m; j++) {
-            c[i][j] = 0;
-            for (t = 0; t < k; t++) {
-                c[i][j] += a[i][t] * b[t][j];
+    if (m_first != n_second) {
+        return 1;
+    }
+    *n_result = n_first;
+    *m_result = m_second;
+    for (i = 0; i < n_first; i++) {
+        for (j = 0; j < m_second; j++) {
+            sum_val = 0;
+            for (t = 0; t < m_first; t++) {
+                sum_val += matrix_first[i][t] * matrix_second[t][j];
             }
+            matrix_result[i][j] = sum_val;
         }
     }
+    return 0;
 }
 
-void transpose_matrix(int **a, int **c, int rows, int cols) {
+int transpose(int **matrix, int n, int m, int **matrix_result) {
     int i;
     int j;
 
-    for (i = 0; i < rows; i++) {
-        for (j = 0; j < cols; j++) {
-            c[j][i] = a[i][j];
+    for (i = 0; i < n; i++) {
+        for (j = 0; j < m; j++) {
+            matrix_result[j][i] = matrix[i][j];
         }
     }
+    return 0;
 }
 ```
 
-**Как работает.** Требования к вводу и выводу те же, что в варианте A. Отличие только в организации памяти: каждая строка матрицы лежит в своём блоке кучи. Поэтому при освобождении нужно пройти по всем строкам и вызвать `free` для каждой из них, а затем освободить массив указателей.
+**Как работает.** Логика `main` и арифметических функций совпадает с вариантом A. Отличие — каждая строка матрицы в отдельном `malloc`, `free_matrix` освобождает строки по одной.
 
 ```bash
 gcc -std=c11 -Wall -Werror -Wextra matrix_arithmetic.c -o matrix_arithmetic
