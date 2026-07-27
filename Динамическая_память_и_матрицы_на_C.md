@@ -2288,45 +2288,51 @@ git push origin develop
 
 ### Quest 8 — `det.c` (T08D11, бонус)
 
-**Суть задания.** На вход подаётся квадратная матрица вещественных чисел. Нужно вычислить её определитель и вывести его с точностью шесть знаков после запятой. Если матрица не квадратная или ввод некорректен, выводится `n/a`.
+**Суть задания.** На вход подаётся квадратная матрица вещественных чисел. Нужно вычислить определитель и вывести его с шестью знаками после запятой (`%.6f`). Если матрица не квадратная или ввод некорректен — `n/a`.
 
-#### Вариант A. Разложение Лапласа по первой строке
+В репозитории обычно есть заготовка с прототипами `det`, `input`, `output` и пустым `main`. Нужно дописать выделение памяти, рекурсивный расчёт определителя (Лаплас) и `main`.
+
+**Типичные ошибки в заготовке:** `void main()` → `int main(void)`; `void input` лучше заменить на `int input` для обработки ошибок чтения; `input` считывает элементы в уже выделённую матрицу (размеры читаются в `main`).
+
+#### Вариант A. Заготовка репозитория, Лаплас, один блок памяти
 
 ```c
 #include <stdio.h>
 #include <stdlib.h>
 
 double **create_matrix(int n);
-void free_matrix(double **m);
-int read_matrix(double **m, int n);
-void minor_matrix(double **m, double **dst, int n, int skip_col);
-double determinant(double **m, int n);
+void free_matrix(double **matrix);
+
+int input(double **matrix, int *n, int *m);
+void output(double value);
+double det(double **matrix, int n, int m);
+void minor_matrix(double **matrix, double **dst, int size, int skip_col);
 
 int main(void) {
-    int rows;
-    int cols;
+    int n;
+    int m;
     double **matrix;
+    double value;
     int error;
-    double det;
 
     error = 0;
     matrix = NULL;
-    det = 0.0;
-    if (scanf("%d%d", &rows, &cols) != 2 || rows <= 0 || cols <= 0 || rows != cols) {
+    value = 0.0;
+    if (scanf("%d%d", &n, &m) != 2 || n <= 0 || m <= 0 || n != m) {
         error = 1;
     }
     if (error == 0) {
-        matrix = create_matrix(rows);
+        matrix = create_matrix(n);
         if (matrix == NULL) {
             error = 1;
         }
     }
     if (error == 0) {
-        error = read_matrix(matrix, rows);
+        error = input(matrix, &n, &m);
     }
     if (error == 0) {
-        det = determinant(matrix, rows);
-        printf("%.6f", det);
+        value = det(matrix, n, m);
+        output(value);
     } else {
         printf("n/a");
     }
@@ -2335,222 +2341,234 @@ int main(void) {
 }
 
 double **create_matrix(int n) {
-    double **m;
+    double **matrix;
     double *data;
     int i;
 
-    m = (double **)malloc((size_t)n * sizeof(double *) + (size_t)n * (size_t)n * sizeof(double));
-    if (m != NULL) {
-        data = (double *)(m + n);
+    matrix = (double **)malloc((size_t)n * sizeof(double *) +
+                               (size_t)n * (size_t)n * sizeof(double));
+    if (matrix != NULL) {
+        data = (double *)(matrix + n);
         for (i = 0; i < n; i++) {
-            m[i] = data + i * n;
+            matrix[i] = data + i * n;
         }
     }
-    return m;
+    return matrix;
 }
 
-void free_matrix(double **m) {
-    free(m);
+void free_matrix(double **matrix) {
+    free(matrix);
 }
 
-int read_matrix(double **m, int n) {
+/* читает n*n элементов в уже выделённую матрицу; 0 — ок, 1 — ошибка */
+int input(double **matrix, int *n, int *m) {
     int i;
     int j;
-    int error;
 
-    error = 0;
-    for (i = 0; i < n; i++) {
-        for (j = 0; j < n; j++) {
-            if (scanf("%lf", &m[i][j]) != 1) {
-                error = 1;
+    (void)m;
+    for (i = 0; i < *n; i++) {
+        for (j = 0; j < *n; j++) {
+            if (scanf("%lf", &matrix[i][j]) != 1) {
+                return 1;
             }
         }
     }
-    return error;
+    return 0;
+}
+
+void output(double value) {
+    printf("%.6f", value);
 }
 
 /* минор: удалили строку 0 и столбец skip_col */
-void minor_matrix(double **m, double **dst, int n, int skip_col) {
+void minor_matrix(double **matrix, double **dst, int size, int skip_col) {
     int i;
     int j;
-    int rj;
     int ci;
 
-    rj = 0;
-    for (i = 1; i < n; i++) {
+    for (i = 1; i < size; i++) {
         ci = 0;
-        for (j = 0; j < n; j++) {
+        for (j = 0; j < size; j++) {
             if (j != skip_col) {
-                dst[rj][ci] = m[i][j];
+                dst[i - 1][ci] = matrix[i][j];
                 ci++;
             }
         }
-        rj++;
     }
 }
 
-double determinant(double **m, int n) {
-    double det;
+double det(double **matrix, int n, int m) {
+    double result;
     double **tmp;
     int j;
     int sign;
 
-    det = 0.0;
+    (void)m;
+    result = 0.0;
     if (n == 1) {
-        det = m[0][0];
+        result = matrix[0][0];
+    } else if (n == 2) {
+        result = matrix[0][0] * matrix[1][1] - matrix[0][1] * matrix[1][0];
     } else {
         tmp = create_matrix(n - 1);
         sign = 1;
         for (j = 0; j < n; j++) {
-            minor_matrix(m, tmp, n, j);
-            det += (double)sign * m[0][j] * determinant(tmp, n - 1);
+            minor_matrix(matrix, tmp, n, j);
+            result += (double)sign * matrix[0][j] * det(tmp, n - 1, n - 1);
             sign = -sign;
         }
         free_matrix(tmp);
     }
-    return det;
+    return result;
 }
 ```
 
-**Как работает.** Если размер матрицы равен 1, определитель совпадает с единственным элементом. При большем размере используется разложение по первой строке: каждый элемент умножается на соответствующий минор и на знак \((-1)^{0+j}\). Функция вызывает себя рекурсивно для миноров меньшего размера, пока не дойдёт до базового случая. Для матрицы из чисел от 1 до 9, записанных по строкам, получается `0.000000`.
+**Как работает.** `main` читает размеры, проверяет `n == m`, выделяет матрицу и вызывает `input`. `det` рекурсивно раскладывает по первой строке (Лаплас); для 1×1 и 2×2 — базовые случаи. `output` печатает одно число с шестью знаками после запятой.
 
-#### Вариант B. Для размера 2 на 2 используется явная формула, дальше Лаплас
+#### Вариант B. Тот же API, каждая строка — отдельный `malloc`
 
 ```c
 #include <stdio.h>
 #include <stdlib.h>
 
 double **create_matrix(int n);
-void free_matrix(double **m, int n);
-int read_matrix(double **m, int n);
-void minor_matrix(double **m, double **dst, int n, int skip_col);
-double determinant(double **m, int n);
+void free_matrix(double **matrix, int n);
+
+int input(double **matrix, int *n, int *m);
+void output(double value);
+double det(double **matrix, int n, int m);
+void minor_matrix(double **matrix, double **dst, int size, int skip_col);
 
 int main(void) {
-    int rows;
-    int cols;
+    int n;
+    int m;
     double **matrix;
+    double value;
     int error;
-    double det;
 
     error = 0;
     matrix = NULL;
-    rows = 0;
-    if (scanf("%d%d", &rows, &cols) != 2 || rows < 1 || cols < 1 || rows != cols) {
+    value = 0.0;
+    if (scanf("%d%d", &n, &m) != 2 || n <= 0 || m <= 0 || n != m) {
         error = 1;
     }
     if (error == 0) {
-        matrix = create_matrix(rows);
+        matrix = create_matrix(n);
         if (matrix == NULL) {
             error = 1;
-        } else {
-            error = read_matrix(matrix, rows);
         }
     }
     if (error == 0) {
-        det = determinant(matrix, rows);
-        printf("%.6f", det);
+        error = input(matrix, &n, &m);
+    }
+    if (error == 0) {
+        value = det(matrix, n, m);
+        output(value);
     } else {
         printf("n/a");
     }
-    free_matrix(matrix, rows);
+    free_matrix(matrix, n);
     return 0;
 }
 
 double **create_matrix(int n) {
-    double **m;
+    double **matrix;
     int i;
     int failed;
 
+    matrix = (double **)malloc((size_t)n * sizeof(double *));
     failed = 0;
-    m = (double **)malloc((size_t)n * sizeof(double *));
-    if (m != NULL) {
+    if (matrix != NULL) {
         for (i = 0; i < n; i++) {
-            m[i] = (double *)malloc((size_t)n * sizeof(double));
-            if (m[i] == NULL) {
+            matrix[i] = (double *)malloc((size_t)n * sizeof(double));
+            if (matrix[i] == NULL) {
                 failed = 1;
             }
         }
         if (failed != 0) {
             for (i = 0; i < n; i++) {
-                free(m[i]);
+                free(matrix[i]);
             }
-            free(m);
-            m = NULL;
+            free(matrix);
+            matrix = NULL;
         }
     }
-    return m;
+    return matrix;
 }
 
-void free_matrix(double **m, int n) {
+void free_matrix(double **matrix, int n) {
     int i;
 
-    if (m != NULL) {
+    if (matrix != NULL) {
         for (i = 0; i < n; i++) {
-            free(m[i]);
+            free(matrix[i]);
         }
-        free(m);
+        free(matrix);
     }
 }
 
-int read_matrix(double **m, int n) {
+int input(double **matrix, int *n, int *m) {
     int i;
     int j;
-    int error;
 
-    error = 0;
-    for (i = 0; i < n; i++) {
-        for (j = 0; j < n; j++) {
-            if (scanf("%lf", &m[i][j]) != 1) {
-                error = 1;
+    (void)m;
+    for (i = 0; i < *n; i++) {
+        for (j = 0; j < *n; j++) {
+            if (scanf("%lf", &matrix[i][j]) != 1) {
+                return 1;
             }
         }
     }
-    return error;
+    return 0;
 }
 
-void minor_matrix(double **m, double **dst, int n, int skip_col) {
+void output(double value) {
+    printf("%.6f", value);
+}
+
+void minor_matrix(double **matrix, double **dst, int size, int skip_col) {
     int i;
     int j;
     int ci;
 
-    for (i = 1; i < n; i++) {
+    for (i = 1; i < size; i++) {
         ci = 0;
-        for (j = 0; j < n; j++) {
+        for (j = 0; j < size; j++) {
             if (j != skip_col) {
-                dst[i - 1][ci] = m[i][j];
+                dst[i - 1][ci] = matrix[i][j];
                 ci++;
             }
         }
     }
 }
 
-double determinant(double **m, int n) {
-    double det;
+double det(double **matrix, int n, int m) {
+    double result;
     double **tmp;
     int j;
     int sign;
 
-    det = 0.0;
+    (void)m;
+    result = 0.0;
     if (n == 1) {
-        det = m[0][0];
+        result = matrix[0][0];
     } else if (n == 2) {
-        det = m[0][0] * m[1][1] - m[0][1] * m[1][0];
+        result = matrix[0][0] * matrix[1][1] - matrix[0][1] * matrix[1][0];
     } else {
         tmp = create_matrix(n - 1);
         sign = 1;
         for (j = 0; j < n; j++) {
-            minor_matrix(m, tmp, n, j);
-            det += (double)sign * m[0][j] * determinant(tmp, n - 1);
+            minor_matrix(matrix, tmp, n, j);
+            result += (double)sign * matrix[0][j] * det(tmp, n - 1, n - 1);
             sign = -sign;
         }
         free_matrix(tmp, n - 1);
     }
-    return det;
+    return result;
 }
 ```
 
-**Как работает.** Для матрицы размера 2 на 2 определитель считается по формуле \(ad - bc\). Для матриц большего размера снова применяется разложение Лапласа. За счёт отдельной обработки случая 2 на 2 рекурсия становится короче на мелких матрицах.
+**Как работает.** Логика совпадает с вариантом A. Память под строки выделяется отдельно; `free_matrix` освобождает каждую строку.
 
 ```bash
 gcc -std=c11 -Wall -Werror -Wextra det.c -o det
