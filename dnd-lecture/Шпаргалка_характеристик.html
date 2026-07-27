@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>D&D 5e — Шпаргалка характеристик</title>
+  <style>
+    @page { size: A4 landscape; margin: 8mm; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', Tahoma, sans-serif;
+      font-size: 9pt;
+      color: #1a1a1a;
+      background: #fff;
+      padding: 6mm;
+    }
+    h1 {
+      text-align: center;
+      font-size: 14pt;
+      color: #8b0000;
+      border-bottom: 2px solid #8b0000;
+      padding-bottom: 3px;
+      margin-bottom: 8px;
+    }
+    .page-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .card {
+      border: 2px solid #333;
+      border-radius: 6px;
+      padding: 8px;
+      break-inside: avoid;
+    }
+    .card h2 {
+      font-size: 11pt;
+      color: #8b0000;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .card h2 .icon { font-size: 16pt; }
+    .card p { font-size: 8.5pt; line-height: 1.4; margin-bottom: 4px; }
+    .card .examples {
+      background: #f5f0e8;
+      border-left: 3px solid #8b0000;
+      padding: 4px 6px;
+      font-size: 8pt;
+      font-style: italic;
+      margin-top: 4px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 8pt;
+    }
+    th {
+      background: #8b0000;
+      color: #fff;
+      padding: 3px 5px;
+      text-align: left;
+    }
+    td { border: 1px solid #ddd; padding: 2px 5px; }
+    tr:nth-child(even) { background: #faf8f5; }
+    .formula-box {
+      background: #333;
+      color: #fff;
+      padding: 8px 12px;
+      border-radius: 5px;
+      text-align: center;
+      font-size: 10pt;
+      margin: 6px 0;
+    }
+    .formula-box strong { color: #ffd700; }
+    .dice-row {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      margin: 8px 0;
+    }
+    .dice {
+      width: 44px; height: 44px;
+      border: 2px solid #333;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 11pt;
+      background: #faf8f5;
+    }
+    .dice.main { background: #8b0000; color: #fff; border-color: #8b0000; font-size: 13pt; }
+    .bottom-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+      margin-top: 8px;
+    }
+  </style>
+</head>
+<body>
+
+<h1>ШПАРГАЛКА: ХАРАКТЕРИСТИКИ И БРОСКИ D&D 5e</h1>
+
+<div class="page-grid">
+
+  <div class="card">
+    <h2><span class="icon">💪</span> СИЛА (STR)</h2>
+    <p><strong>Физическая мощь.</strong> Поднять тяжесть, сломать дверь, борьба.</p>
+    <p><strong>Оружие:</strong> мечи, топоры, булавы (ближний бой)</p>
+    <p><strong>Навык:</strong> Атлетика</p>
+    <div class="examples">«Выбить дверь», «Удержать врага», «Прыгнуть через пропасть»</div>
+  </div>
+
+  <div class="card">
+    <h2><span class="icon">🏃</span> ЛОВКОСТЬ (DEX)</h2>
+    <p><strong>Проворство и реакция.</strong> Скрытность, акробатика, точность.</p>
+    <p><strong>Оружие:</strong> луки, рапиры, кинжалы (дальний и лёгкий бой)</p>
+    <p><strong>КД без доспеха:</strong> 10 + мод. Ловкости</p>
+    <p><strong>Навыки:</strong> Акробатика, Ловкость рук, Скрытность</p>
+    <div class="examples">«Проскользнуть мимо стражи», «Увернуться от стрелы»</div>
+  </div>
+
+  <div class="card">
+    <h2><span class="icon">❤️</span> ТЕЛОСЛОЖЕНИЕ (CON)</h2>
+    <p><strong>Выносливость и здоровье.</strong> Сколько ударов выдержит персонаж.</p>
+    <p><strong>Хиты:</strong> кость хитов + мод. Телосложения (каждый уровень!)</p>
+    <p><strong>Спасброски:</strong> яд, болезни, удержание заклинания</p>
+    <div class="examples">Чем выше Телосложение — тем больше хитов и стойкости</div>
+  </div>
+
+  <div class="card">
+    <h2><span class="icon">🧠</span> ИНТЕЛЛЕКТ (INT)</h2>
+    <p><strong>Память, логика, знания.</strong> Всё, что учат в книгах.</p>
+    <p><strong>Магия:</strong> заклинания Волшебника</p>
+    <p><strong>Навыки:</strong> Аркана, История, Магия, Природа, Расследование, Религия</p>
+    <div class="examples">«Вспомнить легенду», «Найти улику», «Распознать заклинание»</div>
+  </div>
+
+  <div class="card">
+    <h2><span class="icon">👁️</span> МУДРОСТЬ (WIS)</h2>
+    <p><strong>Внимательность, интуиция, воля.</strong> Чувствовать опасность.</p>
+    <p><strong>Магия:</strong> заклинания Жреца, Друида, Следопыта</p>
+    <p><strong>Навыки:</strong> Внимательность, Выживание, Медицина, Проницательность, Уход за животными</p>
+    <div class="examples">«Заметить ловушку», «Понять, что NPC лжёт», «Вылечить рану»</div>
+  </div>
+
+  <div class="card">
+    <h2><span class="icon">✨</span> ХАРИЗМА (CHA)</h2>
+    <p><strong>Обаяние, уверенность, лидерство.</strong> Влиять на людей.</p>
+    <p><strong>Магия:</strong> заклинания Барда, Колдуна, Паладина</p>
+    <p><strong>Навыки:</strong> Выступление, Запугивание, Обман, Убеждение</p>
+    <div class="examples">«Уговорить стражника», «Обмануть торговца», «Вдохновить союзников»</div>
+  </div>
+
+</div>
+
+<!-- Таблица модификаторов -->
+<div class="card" style="margin-top:8px;">
+  <h2>📊 МОДИФИКАТОРЫ ХАРАКТЕРИСТИК</h2>
+  <table>
+    <tr>
+      <th>Значение</th><th>Мод.</th>
+      <th>Значение</th><th>Мод.</th>
+      <th>Значение</th><th>Мод.</th>
+      <th>Значение</th><th>Мод.</th>
+    </tr>
+    <tr>
+      <td>1</td><td>−5</td>
+      <td>6–7</td><td>−2</td>
+      <td>12–13</td><td>+1</td>
+      <td>18–19</td><td>+4</td>
+    </tr>
+    <tr>
+      <td>2–3</td><td>−4</td>
+      <td>8–9</td><td>−1</td>
+      <td>14–15</td><td>+2</td>
+      <td>20</td><td>+5</td>
+    </tr>
+    <tr>
+      <td>4–5</td><td>−3</td>
+      <td>10–11</td><td>0</td>
+      <td>16–17</td><td>+3</td>
+      <td></td><td></td>
+    </tr>
+  </table>
+  <p style="margin-top:4px; font-size:8pt;">Формула: <strong>(значение − 10) ÷ 2</strong>, округление вниз</p>
+</div>
+
+<!-- Формулы бросков -->
+<div class="bottom-row">
+  <div class="card">
+    <h2>🎲 БРОСОК НАВЫКА</h2>
+    <div class="formula-box">
+      <strong>d20</strong> + мод. характеристики + <strong>+2</strong> (если владеете)
+    </div>
+    <p>Мастер называет сложность (СЛ). Ваш результат ≥ СЛ → успех.</p>
+  </div>
+
+  <div class="card">
+    <h2>⚔️ АТАКА</h2>
+    <div class="formula-box">
+      <strong>d20</strong> + мод. (Сил или Лов) + <strong>+2</strong>
+    </div>
+    <p>≥ КД врага → попадание. Урон = кость оружия + мод.</p>
+  </div>
+
+  <div class="card">
+    <h2>✨ ЗАКЛИНАНИЕ</h2>
+    <div class="formula-box">
+      СЛ = <strong>8 + 2 +</strong> мод. &nbsp;|&nbsp; Атака = <strong>+2 +</strong> мод.
+    </div>
+    <p>Мод. = главная характеристика класса (Инт / Мдр / Хар)</p>
+  </div>
+</div>
+
+<!-- Кубики -->
+<div class="card" style="margin-top:8px; text-align:center;">
+  <h2 style="justify-content:center;">🎲 КУБИКИ В D&D</h2>
+  <div class="dice-row">
+    <div class="dice main">d20</div>
+    <div class="dice">d12</div>
+    <div class="dice">d10</div>
+    <div class="dice">d8</div>
+    <div class="dice">d6</div>
+    <div class="dice">d4</div>
+  </div>
+  <p><strong>d20</strong> — главный кубик: атаки, навыки, спасброски. Остальные — для урона и хитов.</p>
+  <p style="margin-top:4px;"><strong>20 = критический успех</strong> (удвоенный урон в бою) · <strong>1 = критический провал</strong> (по решению мастера)</p>
+</div>
+
+<p style="text-align:center; margin-top:10px; font-size:7pt; color:#aaa;">
+  D&D 5e · Шпаргалка для мастер-класса · Распечатайте и положите на стол
+</p>
+
+</body>
+</html>
