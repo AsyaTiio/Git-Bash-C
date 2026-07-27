@@ -1466,9 +1466,23 @@ printf "2\n3 3\n4 3 1\n9 0 55\n-4 7 111\n" | ./matrix_extended
 
 ### Quest 5 — `picture.c` (T07D10)
 
-**Суть задания.** Нужно собрать в терминале картину со стены комнаты, используя уже заданные в коде массивы и матрицы. Статические массивы и матрицы изменять нельзя. Обычно достаточно дописать функцию `make_picture` и вывод результата. Размер картины равен 15 строкам на 13 столбцов.
+**Суть задания.** Нужно собрать в терминале картину со стены комнаты, используя уже заданные в коде массивы и матрицы. Статические массивы и матрицы в `make_picture` изменять нельзя — только копировать их значения в `picture`. В репозитории обычно уже есть заготовка с `transform`, пустым `make_picture` и `reset_picture`. Дописать нужно отрисовку, вывод и `main`. Размер картины: **15** строк (`N`) на **13** столбцов (`M`).
 
-#### Вариант A. Порядок отрисовки: рамка, ствол, крона, солнце
+**Типичные ошибки в заготовке:**
+- `void main()` → нужно `int main(void)`
+- `reset_picture`: перепутаны `n` и `m` в циклах (`i < n`, `j < m`)
+- `transform(picture_data, ...)` → `transform((int *)picture_data, picture, N, M)`
+- в `make_picture` нарисована только одна линия рамки — нужны рамка, крона, ствол и солнце
+
+| Символ | Что на картине |
+|--------|----------------|
+| `1` | рамка «окна» |
+| `3` | крона дерева |
+| `7` | ствол |
+| `6` | солнце |
+| `0` | фон |
+
+#### Вариант A. Дописанная заготовка: `trunk_rows` и `sizeof` для рамки
 
 ```c
 #include <stdio.h>
@@ -1488,33 +1502,28 @@ int main(void) {
     transform((int *)picture_data, picture, N, M);
     make_picture(picture, N, M);
     print_picture(picture, N, M);
+
     return 0;
 }
 
-/* превращает плоский/2D буфер в массив указателей на строки */
-void transform(int *buf, int **matr, int n, int m) {
-    int i;
-
-    for (i = 0; i < n; i++) {
-        matr[i] = buf + i * m;
-    }
-}
-
-/* собирает картину из заготовок */
 void make_picture(int **picture, int n, int m) {
     int frame_w[] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
     int frame_h[] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
     int tree_trunk[] = {7, 7, 7, 7};
     int tree_foliage[] = {3, 3, 3, 3};
-    int sun_data[6][5] = {{0, 6, 6, 6, 6}, {0, 0, 6, 6, 6}, {0, 0, 6, 6, 6},
-                          {0, 6, 0, 0, 6}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}};
-    int i;
-    int j;
+    int sun_data[6][5] = {
+        {0, 6, 6, 6, 6},
+        {0, 0, 6, 6, 6},
+        {0, 0, 6, 6, 6},
+        {0, 6, 0, 0, 6},
+        {0, 0, 0, 0, 0},
+        {0, 0, 0, 0, 0}
+    };
+    int trunk_rows[] = {6, 8, 9, 10};
     int length_frame_w;
     int length_frame_h;
-    int length_tree_trunk;
-    int length_tree_foliage;
-    int trunk_row;
+    int i;
+    int j;
 
     (void)n;
     (void)m;
@@ -1523,27 +1532,24 @@ void make_picture(int **picture, int n, int m) {
     length_frame_w = (int)(sizeof(frame_w) / sizeof(frame_w[0]));
     for (i = 0; i < length_frame_w; i++) {
         picture[0][i] = frame_w[i];
-        picture[N / 2][i] = frame_w[i];
-        picture[N - 1][i] = frame_w[i];
+        picture[7][i] = frame_w[i];
+        picture[14][i] = frame_w[i];
     }
 
     length_frame_h = (int)(sizeof(frame_h) / sizeof(frame_h[0]));
     for (i = 0; i < length_frame_h; i++) {
         picture[i][0] = frame_h[i];
-        picture[i][M / 2] = frame_h[i];
-        picture[i][M - 1] = frame_h[i];
+        picture[i][6] = frame_h[i];
+        picture[i][12] = frame_h[i];
     }
 
-    length_tree_trunk = (int)(sizeof(tree_trunk) / sizeof(tree_trunk[0]));
-    for (i = 0; i < length_tree_trunk; i++) {
-        trunk_row = (7 - i == 7) ? (6 + i) : (7 + i);
-        picture[trunk_row][3] = tree_trunk[i];
-        picture[trunk_row][4] = tree_trunk[i];
+    for (i = 0; i < 4; i++) {
+        picture[trunk_rows[i]][3] = tree_trunk[i];
+        picture[trunk_rows[i]][4] = tree_trunk[i];
         picture[10][2 + i] = tree_trunk[i];
     }
 
-    length_tree_foliage = (int)(sizeof(tree_foliage) / sizeof(tree_foliage[0]));
-    for (i = 0; i < length_tree_foliage; i++) {
+    for (i = 0; i < 4; i++) {
         picture[2 + i][3] = tree_foliage[i];
         picture[2 + i][4] = tree_foliage[i];
         picture[3][2 + i] = tree_foliage[i];
@@ -1557,7 +1563,6 @@ void make_picture(int **picture, int n, int m) {
     }
 }
 
-/* заливает картину нулями */
 void reset_picture(int **picture, int n, int m) {
     int i;
     int j;
@@ -1569,7 +1574,14 @@ void reset_picture(int **picture, int n, int m) {
     }
 }
 
-/* печать матрицы картины */
+void transform(int *buf, int **matr, int n, int m) {
+    int i;
+
+    for (i = 0; i < n; i++) {
+        matr[i] = buf + i * m;
+    }
+}
+
 void print_picture(int **picture, int n, int m) {
     int row;
     int col;
@@ -1588,9 +1600,9 @@ void print_picture(int **picture, int n, int m) {
 }
 ```
 
-**Как работает.** Сначала матрица обнуляется. Затем по краям и по центральным линиям копируются единицы из массивов рамки. Ствол из семёрок записывается так, чтобы средняя горизонтальная линия рамки в строке 7 осталась без изменений. Крона заполняется тройками, справа копируется заготовка солнца из шестёрок. Исходные статические массивы при этом не меняются: их значения только копируются в итоговую матрицу `picture`.
+**Как работает.** `reset_picture` заливает матрицу нулями. Рамка: горизонтальные линии в строках 0, 7 и 14, вертикальные в столбцах 0, 6 и 12. Ствол (`7`) — в строках 6, 8, 9, 10 и ветка в строке 10. Крона (`3`) — в верхней части дерева. Солнце (`6`) — из `sun_data` начиная с позиции `[1][7]`. Заготовки `frame_w`, `frame_h`, `tree_trunk`, `tree_foliage`, `sun_data` не меняются.
 
-#### Вариант B. Тот же рисунок, строки ствола заданы явным списком
+#### Вариант B. Те же рисунки, индексы рамки через `N` и `M`
 
 ```c
 #include <stdio.h>
@@ -1610,15 +1622,8 @@ int main(void) {
     transform(&picture_data[0][0], picture, N, M);
     make_picture(picture, N, M);
     print_picture(picture, N, M);
+
     return 0;
-}
-
-void transform(int *buf, int **matr, int n, int m) {
-    int i;
-
-    for (i = 0; i < n; i++) {
-        matr[i] = buf + i * m;
-    }
 }
 
 void make_picture(int **picture, int n, int m) {
@@ -1626,8 +1631,14 @@ void make_picture(int **picture, int n, int m) {
     int frame_h[] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
     int tree_trunk[] = {7, 7, 7, 7};
     int tree_foliage[] = {3, 3, 3, 3};
-    int sun_data[6][5] = {{0, 6, 6, 6, 6}, {0, 0, 6, 6, 6}, {0, 0, 6, 6, 6},
-                          {0, 6, 0, 0, 6}, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}};
+    int sun_data[6][5] = {
+        {0, 6, 6, 6, 6},
+        {0, 0, 6, 6, 6},
+        {0, 0, 6, 6, 6},
+        {0, 6, 0, 0, 6},
+        {0, 0, 0, 0, 0},
+        {0, 0, 0, 0, 0}
+    };
     int trunk_rows[] = {6, 8, 9, 10};
     int i;
     int j;
@@ -1638,13 +1649,13 @@ void make_picture(int **picture, int n, int m) {
 
     for (i = 0; i < M; i++) {
         picture[0][i] = frame_w[i];
-        picture[7][i] = frame_w[i];
-        picture[14][i] = frame_w[i];
+        picture[N / 2][i] = frame_w[i];
+        picture[N - 1][i] = frame_w[i];
     }
     for (i = 0; i < N; i++) {
         picture[i][0] = frame_h[i];
-        picture[i][6] = frame_h[i];
-        picture[i][12] = frame_h[i];
+        picture[i][M / 2] = frame_h[i];
+        picture[i][M - 1] = frame_h[i];
     }
     for (i = 0; i < 4; i++) {
         picture[trunk_rows[i]][3] = tree_trunk[i];
@@ -1675,6 +1686,14 @@ void reset_picture(int **picture, int n, int m) {
     }
 }
 
+void transform(int *buf, int **matr, int n, int m) {
+    int i;
+
+    for (i = 0; i < n; i++) {
+        matr[i] = buf + i * m;
+    }
+}
+
 void print_picture(int **picture, int n, int m) {
     int row;
     int col;
@@ -1693,7 +1712,7 @@ void print_picture(int **picture, int n, int m) {
 }
 ```
 
-**Как работает.** Здесь номера строк ствола заданы явным массивом `{6, 8, 9, 10}`. Условная формула для вычисления номера строки не используется. Заготовки `tree_trunk`, `frame_w`, `frame_h` и остальные статические данные остаются прежними, поэтому условие о запрете их изменения соблюдено.
+**Как работает.** Логика отрисовки совпадает с вариантом A. Отличие: для рамки используются `N / 2`, `N - 1`, `M / 2`, `M - 1` вместо явных чисел 7, 14, 6, 12; `transform` вызывается через `&picture_data[0][0]`.
 
 ```bash
 gcc -std=c11 -Wall -Werror -Wextra picture.c -o picture
