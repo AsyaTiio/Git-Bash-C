@@ -105,18 +105,21 @@ cd src
 
 **Суть задания.** Сначала из stdin читается целое `n`, затем ровно `n` целых чисел. Числа нужно отсортировать по возрастанию и вывести. Память под массив выделяется динамически через `malloc` или `calloc`. При любой ошибке выводится `n/a`. В конце вывода символа перевода строки быть не должно.
 
+В прошлой комнате массив был статическим (`int data[10]`) и всегда содержал 10 чисел. Здесь размер задаётся вводом, а память берётся из кучи. Функции `input`, `output`, `sort`, `swap` и проверка разделителей через `getchar` остаются как в прошлом дне — меняется только выделение памяти и работа с `n`.
+
 В этом квесте в вариантах ниже специально нет вызова `free`, чтобы показать утечку, которую устраняет Quest 2. Для проверки вывода оба варианта подходят.
 
-#### Вариант A. `calloc` и пузырьковая сортировка без `free`
+#### Вариант A. `calloc`, пузырёк через указатели, без `free`
 
 ```c
 #include <stdio.h>
 #include <stdlib.h>
 
 int read_n(int *n);
-int read_array(int *a, int n);
-void sort_array(int *a, int n);
-void print_array(int *a, int n);
+int input(int *a, int n);
+void output(int *a, int n);
+void sort(int *a, int n);
+void swap(int *x, int *y);
 
 int main(void) {
     int n;
@@ -133,11 +136,11 @@ int main(void) {
         }
     }
     if (error == 0) {
-        error = read_array(data, n);
+        error = input(data, n);
     }
     if (error == 0) {
-        sort_array(data, n);
-        print_array(data, n);
+        sort(data, n);
+        output(data, n);
     } else {
         printf("n/a");
     }
@@ -155,64 +158,94 @@ int read_n(int *n) {
     return error;
 }
 
-/* читает n целых в уже выделенный массив */
-int read_array(int *a, int n) {
-    int i;
+/* считывает n целых и валидирует разделители */
+int input(int *a, int n) {
     int error;
+    char next_char;
+    int *p;
 
     error = 0;
-    i = 0;
-    while (i < n && error == 0) {
-        if (scanf("%d", &a[i]) != 1) {
+    next_char = ' ';
+    p = a;
+    while (p - a < n && !error) {
+        if (scanf("%d", p) != 1) {
             error = 1;
+        } else {
+            if (p - a < n - 1) {
+                next_char = getchar();
+                if (next_char != ' ' && next_char != '\t' && next_char != '\n') {
+                    error = 1;
+                }
+            }
+            p++;
         }
-        i++;
+    }
+    if (!error) {
+        next_char = getchar();
+        while (next_char != '\n' && next_char != EOF && !error) {
+            if (next_char != ' ' && next_char != '\t') {
+                error = 1;
+            } else {
+                next_char = getchar();
+            }
+        }
     }
     return error;
 }
 
-/* пузырьковая сортировка по возрастанию */
-void sort_array(int *a, int n) {
+/* меняет местами значения двух элементов по их указателям */
+void swap(int *x, int *y) {
+    int t;
+
+    t = *x;
+    *x = *y;
+    *y = t;
+}
+
+/* сортирует массив пузырьком по возрастанию, используя указатели */
+void sort(int *a, int n) {
     int i;
-    int j;
-    int tmp;
+    int *p;
 
     for (i = 0; i < n - 1; i++) {
-        for (j = 0; j < n - 1 - i; j++) {
-            if (a[j] > a[j + 1]) {
-                tmp = a[j];
-                a[j] = a[j + 1];
-                a[j + 1] = tmp;
+        p = a;
+        while (p - a < n - 1 - i) {
+            if (*p > *(p + 1)) {
+                swap(p, p + 1);
             }
+            p++;
         }
     }
 }
 
-/* печать через пробел без хвостового пробела и без \\n */
-void print_array(int *a, int n) {
-    int i;
+/* выводит элементы массива через пробел без \\n в конце */
+void output(int *a, int n) {
+    int *p;
 
-    for (i = 0; i < n; i++) {
-        if (i > 0) {
+    p = a;
+    while (p - a < n) {
+        if (p != a) {
             printf(" ");
         }
-        printf("%d", a[i]);
+        printf("%d", *p);
+        p++;
     }
 }
 ```
 
-**Как работает.** Программа читает длину массива `n` и выделяет ровно `n` элементов типа `int` через `calloc`, поэтому выделенная область сразу заполнена нулями. Затем элементы считываются во выделенный массив. Пузырьковая сортировка многократно сравнивает соседние элементы и при необходимости меняет их местами, пока массив не станет упорядоченным по возрастанию. После этого массив печатается через пробел. Вызова `free` здесь нет, поэтому выделенная память остаётся занятой до конца работы программы. Именно такую утечку нужно убрать в Quest 2.
+**Как работает.** Сначала читается `n`, затем через `calloc` выделяется ровно `n` элементов. Функция `input` перенесена из прошлого дня: она проверяет не только `scanf`, но и символы между числами через `getchar`. Сортировка — тот же пузырёк с `swap` и указателями, только границы зависят от `n`, а не от фиксированного 10. Вызова `free` нет — память «течёт» до конца программы.
 
-#### Вариант B. `malloc` и сортировка выбором без `free`
+#### Вариант B. `malloc` и тот же алгоритм без `free`
 
 ```c
 #include <stdio.h>
 #include <stdlib.h>
 
 int read_n(int *n);
-int read_array(int *a, int n);
-void sort_array(int *a, int n);
-void print_array(int *a, int n);
+int input(int *a, int n);
+void output(int *a, int n);
+void sort(int *a, int n);
+void swap(int *x, int *y);
 
 int main(void) {
     int n;
@@ -229,11 +262,11 @@ int main(void) {
         }
     }
     if (error == 0) {
-        error = read_array(data, n);
+        error = input(data, n);
     }
     if (error == 0) {
-        sort_array(data, n);
-        print_array(data, n);
+        sort(data, n);
+        output(data, n);
     } else {
         printf("n/a");
     }
@@ -250,52 +283,78 @@ int read_n(int *n) {
     return error;
 }
 
-int read_array(int *a, int n) {
-    int i;
+int input(int *a, int n) {
     int error;
+    char next_char;
+    int *p;
 
     error = 0;
-    for (i = 0; i < n; i++) {
-        if (scanf("%d", a + i) != 1) {
+    next_char = ' ';
+    p = a;
+    while (p - a < n && !error) {
+        if (scanf("%d", p) != 1) {
             error = 1;
+        } else {
+            if (p - a < n - 1) {
+                next_char = getchar();
+                if (next_char != ' ' && next_char != '\t' && next_char != '\n') {
+                    error = 1;
+                }
+            }
+            p++;
+        }
+    }
+    if (!error) {
+        next_char = getchar();
+        while (next_char != '\n' && next_char != EOF && !error) {
+            if (next_char != ' ' && next_char != '\t') {
+                error = 1;
+            } else {
+                next_char = getchar();
+            }
         }
     }
     return error;
 }
 
-/* сортировка выбором: на место i ставим минимум хвоста */
-void sort_array(int *a, int n) {
+void swap(int *x, int *y) {
+    int t;
+
+    t = *x;
+    *x = *y;
+    *y = t;
+}
+
+void sort(int *a, int n) {
     int i;
-    int j;
-    int min_i;
-    int tmp;
+    int *p;
 
     for (i = 0; i < n - 1; i++) {
-        min_i = i;
-        for (j = i + 1; j < n; j++) {
-            if (a[j] < a[min_i]) {
-                min_i = j;
+        p = a;
+        while (p - a < n - 1 - i) {
+            if (*p > *(p + 1)) {
+                swap(p, p + 1);
             }
+            p++;
         }
-        tmp = a[i];
-        a[i] = a[min_i];
-        a[min_i] = tmp;
     }
 }
 
-void print_array(int *a, int n) {
-    int i;
+void output(int *a, int n) {
+    int *p;
 
-    for (i = 0; i < n; i++) {
-        if (i != 0) {
+    p = a;
+    while (p - a < n) {
+        if (p != a) {
             printf(" ");
         }
-        printf("%d", a[i]);
+        printf("%d", *p);
+        p++;
     }
 }
 ```
 
-**Как работает.** Логика программы та же, что в варианте A. Память выделяется через `malloc`, поэтому содержимое блока заранее не обнуляется. Это допустимо, потому что каждый элемент всё равно будет перезаписан при вводе. Сортировка выбором на каждом шаге находит минимум в ещё не упорядоченной части массива и ставит его на текущую позицию. Вызова `free` снова нет.
+**Как работает.** Отличие от варианта A только в `malloc` вместо `calloc`: блок не обнуляется, но все ячейки всё равно перезаписываются при вводе. Остальная логика совпадает с прошлым днём.
 
 ```bash
 gcc -std=c11 -Wall -Werror -Wextra sort.c -o sort
@@ -309,16 +368,17 @@ printf "10\n4 3 9 0 1 2 100 2 7 -1\n" | ./sort
 
 **Суть задания.** Нужна та же сортировка, что в Quest 1, но уже без утечки памяти. После использования массива вызывается `free(data)`. Если в Quest 1 вызов `free` уже был, файл можно просто скопировать в `sort_no_leak.c`.
 
-#### Вариант A. Пузырьковая сортировка и `free` на всех путях
+#### Вариант A. `calloc` и `free`, если указатель не `NULL`
 
 ```c
 #include <stdio.h>
 #include <stdlib.h>
 
 int read_n(int *n);
-int read_array(int *a, int n);
-void sort_array(int *a, int n);
-void print_array(int *a, int n);
+int input(int *a, int n);
+void output(int *a, int n);
+void sort(int *a, int n);
+void swap(int *x, int *y);
 
 int main(void) {
     int n;
@@ -335,11 +395,11 @@ int main(void) {
         }
     }
     if (error == 0) {
-        error = read_array(data, n);
+        error = input(data, n);
     }
     if (error == 0) {
-        sort_array(data, n);
-        print_array(data, n);
+        sort(data, n);
+        output(data, n);
     } else {
         printf("n/a");
     }
@@ -359,61 +419,90 @@ int read_n(int *n) {
     return error;
 }
 
-int read_array(int *a, int n) {
-    int i;
+int input(int *a, int n) {
     int error;
+    char next_char;
+    int *p;
 
     error = 0;
-    i = 0;
-    while (i < n && error == 0) {
-        if (scanf("%d", &a[i]) != 1) {
+    next_char = ' ';
+    p = a;
+    while (p - a < n && !error) {
+        if (scanf("%d", p) != 1) {
             error = 1;
+        } else {
+            if (p - a < n - 1) {
+                next_char = getchar();
+                if (next_char != ' ' && next_char != '\t' && next_char != '\n') {
+                    error = 1;
+                }
+            }
+            p++;
         }
-        i++;
+    }
+    if (!error) {
+        next_char = getchar();
+        while (next_char != '\n' && next_char != EOF && !error) {
+            if (next_char != ' ' && next_char != '\t') {
+                error = 1;
+            } else {
+                next_char = getchar();
+            }
+        }
     }
     return error;
 }
 
-void sort_array(int *a, int n) {
+void swap(int *x, int *y) {
+    int t;
+
+    t = *x;
+    *x = *y;
+    *y = t;
+}
+
+void sort(int *a, int n) {
     int i;
-    int j;
-    int tmp;
+    int *p;
 
     for (i = 0; i < n - 1; i++) {
-        for (j = 0; j < n - 1 - i; j++) {
-            if (a[j] > a[j + 1]) {
-                tmp = a[j];
-                a[j] = a[j + 1];
-                a[j + 1] = tmp;
+        p = a;
+        while (p - a < n - 1 - i) {
+            if (*p > *(p + 1)) {
+                swap(p, p + 1);
             }
+            p++;
         }
     }
 }
 
-void print_array(int *a, int n) {
-    int i;
+void output(int *a, int n) {
+    int *p;
 
-    for (i = 0; i < n; i++) {
-        if (i > 0) {
+    p = a;
+    while (p - a < n) {
+        if (p != a) {
             printf(" ");
         }
-        printf("%d", a[i]);
+        printf("%d", *p);
+        p++;
     }
 }
 ```
 
-**Как работает.** Алгоритм совпадает с Quest 1. Отличие в том, что в конце `main` вызывается `free`, если указатель уже не равен `NULL`. Память освобождается и при успешном завершении, и при ошибке чтения после того, как выделение уже произошло.
+**Как работает.** Код совпадает с Quest 1, вариант A. В конце `main` вызывается `free(data)`, если память была выделена — это убирает утечку при успехе и при ошибке чтения после `calloc`.
 
-#### Вариант B. Сортировка выбором и `free`
+#### Вариант B. `malloc` и `free(data)` всегда
 
 ```c
 #include <stdio.h>
 #include <stdlib.h>
 
 int read_n(int *n);
-int read_array(int *a, int n);
-void sort_array(int *a, int n);
-void print_array(int *a, int n);
+int input(int *a, int n);
+void output(int *a, int n);
+void sort(int *a, int n);
+void swap(int *x, int *y);
 
 int main(void) {
     int n;
@@ -430,11 +519,11 @@ int main(void) {
         }
     }
     if (error == 0) {
-        error = read_array(data, n);
+        error = input(data, n);
     }
     if (error == 0) {
-        sort_array(data, n);
-        print_array(data, n);
+        sort(data, n);
+        output(data, n);
     } else {
         printf("n/a");
     }
@@ -452,51 +541,78 @@ int read_n(int *n) {
     return error;
 }
 
-int read_array(int *a, int n) {
-    int i;
+int input(int *a, int n) {
     int error;
+    char next_char;
+    int *p;
 
     error = 0;
-    for (i = 0; i < n; i++) {
-        if (scanf("%d", a + i) != 1) {
+    next_char = ' ';
+    p = a;
+    while (p - a < n && !error) {
+        if (scanf("%d", p) != 1) {
             error = 1;
+        } else {
+            if (p - a < n - 1) {
+                next_char = getchar();
+                if (next_char != ' ' && next_char != '\t' && next_char != '\n') {
+                    error = 1;
+                }
+            }
+            p++;
+        }
+    }
+    if (!error) {
+        next_char = getchar();
+        while (next_char != '\n' && next_char != EOF && !error) {
+            if (next_char != ' ' && next_char != '\t') {
+                error = 1;
+            } else {
+                next_char = getchar();
+            }
         }
     }
     return error;
 }
 
-void sort_array(int *a, int n) {
+void swap(int *x, int *y) {
+    int t;
+
+    t = *x;
+    *x = *y;
+    *y = t;
+}
+
+void sort(int *a, int n) {
     int i;
-    int j;
-    int min_i;
-    int tmp;
+    int *p;
 
     for (i = 0; i < n - 1; i++) {
-        min_i = i;
-        for (j = i + 1; j < n; j++) {
-            if (a[j] < a[min_i]) {
-                min_i = j;
+        p = a;
+        while (p - a < n - 1 - i) {
+            if (*p > *(p + 1)) {
+                swap(p, p + 1);
             }
+            p++;
         }
-        tmp = a[i];
-        a[i] = a[min_i];
-        a[min_i] = tmp;
     }
 }
 
-void print_array(int *a, int n) {
-    int i;
+void output(int *a, int n) {
+    int *p;
 
-    for (i = 0; i < n; i++) {
-        if (i != 0) {
+    p = a;
+    while (p - a < n) {
+        if (p != a) {
             printf(" ");
         }
-        printf("%d", a[i]);
+        printf("%d", *p);
+        p++;
     }
 }
 ```
 
-**Как работает.** В языке C вызов `free(NULL)` безопасен и ничего не делает. Поэтому в конце можно писать просто `free(data)` даже тогда, когда выделение памяти не выполнялось и указатель остался равным `NULL`.
+**Как работает.** В языке C вызов `free(NULL)` безопасен и ничего не делает. Поэтому в конце можно писать просто `free(data)` — память освободится, если она была выделена, и ничего не произойдёт, если `read_n` завершился с ошибкой.
 
 ```bash
 gcc -std=c11 -Wall -Werror -Wextra sort_no_leak.c -o sort_no_leak
