@@ -2582,9 +2582,13 @@ printf "3 3\n1 2 3\n4 5 6\n7 8 9\n" | ./det
 
 **Суть задания.** Нужно вычислить обратную матрицу для квадратной матрицы вещественных чисел и вывести её форматом `%.6f`. В конце строк пробелов быть не должно, после последней строки перевода строки тоже быть не должно. При ошибке или нулевом определителе выводится `n/a`.
 
-В сюжете ИИ просит дополнительно умножить результат на \(-1\). Для автотеста это действие выполнять не нужно: сдаётся обычная обратная матрица \(A^{-1}\).
+В репозитории обычно есть заготовка с прототипами `invert`, `input`, `output` и пустым `main`. Нужно дописать выделение памяти, расчёт обратной матрицы через алгебраические дополнения и `main`.
 
-#### Вариант A. Обратная матрица через алгебраические дополнения
+В сюжете ИИ просит дополнительно умножить результат на \(-1\). **Для автотеста это не нужно** — сдаётся обычная обратная матрица \(A^{-1}\).
+
+**Типичные ошибки в заготовке:** `void main()` → `int main(void)`; `void invert` и `void input` лучше заменить на `int` для ошибок; компиляция с `-lm` (для `fabs`); `invert` записывает обратную матрицу в тот же `matrix`, затем `output` печатает результат.
+
+#### Вариант A. Заготовка репозитория, один блок памяти
 
 ```c
 #include <stdio.h>
@@ -2594,94 +2598,92 @@ printf "3 3\n1 2 3\n4 5 6\n7 8 9\n" | ./det
 #define EPS 1e-9
 
 double **create_matrix(int n);
-void free_matrix(double **m);
-int read_matrix(double **m, int n);
-void print_matrix(double **m, int n);
-void minor_matrix(double **m, double **dst, int n, int skip_row, int skip_col);
-double determinant(double **m, int n);
-int inverse_matrix(double **m, double **out, int n);
+void free_matrix(double **matrix);
+
+int input(double **matrix, int *n, int *m);
+void output(double **matrix, int n, int m);
+int invert(double **matrix, int n, int m);
+void minor_matrix(double **matrix, double **dst, int size, int skip_row, int skip_col);
+double determinant(double **matrix, int size);
 
 int main(void) {
-    int rows;
-    int cols;
+    int n;
+    int m;
     double **matrix;
-    double **inv;
     int error;
 
     error = 0;
     matrix = NULL;
-    inv = NULL;
-    if (scanf("%d%d", &rows, &cols) != 2 || rows < 1 || cols < 1 || rows != cols) {
+    if (scanf("%d%d", &n, &m) != 2 || n <= 0 || m <= 0 || n != m) {
         error = 1;
     }
     if (error == 0) {
-        matrix = create_matrix(rows);
-        inv = create_matrix(rows);
-        if (matrix == NULL || inv == NULL) {
+        matrix = create_matrix(n);
+        if (matrix == NULL) {
             error = 1;
         }
     }
     if (error == 0) {
-        error = read_matrix(matrix, rows);
+        error = input(matrix, &n, &m);
     }
     if (error == 0) {
-        error = inverse_matrix(matrix, inv, rows);
+        error = invert(matrix, n, m);
     }
     if (error == 0) {
-        print_matrix(inv, rows);
+        output(matrix, n, m);
     } else {
         printf("n/a");
     }
     free_matrix(matrix);
-    free_matrix(inv);
     return 0;
 }
 
 double **create_matrix(int n) {
-    double **m;
+    double **matrix;
     double *data;
     int i;
 
-    m = (double **)malloc((size_t)n * sizeof(double *) + (size_t)n * (size_t)n * sizeof(double));
-    if (m != NULL) {
-        data = (double *)(m + n);
+    matrix = (double **)malloc((size_t)n * sizeof(double *) +
+                               (size_t)n * (size_t)n * sizeof(double));
+    if (matrix != NULL) {
+        data = (double *)(matrix + n);
         for (i = 0; i < n; i++) {
-            m[i] = data + i * n;
+            matrix[i] = data + i * n;
         }
     }
-    return m;
+    return matrix;
 }
 
-void free_matrix(double **m) {
-    free(m);
+void free_matrix(double **matrix) {
+    free(matrix);
 }
 
-int read_matrix(double **m, int n) {
+int input(double **matrix, int *n, int *m) {
     int i;
     int j;
-    int error;
 
-    error = 0;
-    for (i = 0; i < n; i++) {
-        for (j = 0; j < n; j++) {
-            if (scanf("%lf", &m[i][j]) != 1) {
-                error = 1;
+    (void)m;
+    for (i = 0; i < *n; i++) {
+        for (j = 0; j < *n; j++) {
+            if (scanf("%lf", &matrix[i][j]) != 1) {
+                return 1;
             }
         }
     }
-    return error;
+    return 0;
 }
 
-void print_matrix(double **m, int n) {
+void output(double **matrix, int n, int m) {
     int i;
     int j;
 
+    (void)m;
     for (i = 0; i < n; i++) {
         for (j = 0; j < n; j++) {
             if (j > 0) {
                 printf(" ");
             }
-            printf("%.6f", m[i][j]);
+            printf("%.6f", matrix[i][j]);
         }
         if (i + 1 < n) {
             printf("\n");
@@ -2689,19 +2691,19 @@ void print_matrix(double **m, int n) {
     }
 }
 
-void minor_matrix(double **m, double **dst, int n, int skip_row, int skip_col) {
+void minor_matrix(double **matrix, double **dst, int size, int skip_row, int skip_col) {
     int i;
     int j;
     int ri;
     int ci;
 
     ri = 0;
-    for (i = 0; i < n; i++) {
+    for (i = 0; i < size; i++) {
         if (i != skip_row) {
             ci = 0;
-            for (j = 0; j < n; j++) {
+            for (j = 0; j < size; j++) {
                 if (j != skip_col) {
-                    dst[ri][ci] = m[i][j];
+                    dst[ri][ci] = matrix[i][j];
                     ci++;
                 }
             }
@@ -2710,21 +2712,23 @@ void minor_matrix(double **m, double **dst, int n, int skip_row, int skip_col) {
     }
 }
 
-double determinant(double **m, int n) {
+double determinant(double **matrix, int size) {
     double det;
     double **tmp;
     int j;
     int sign;
 
     det = 0.0;
-    if (n == 1) {
-        det = m[0][0];
+    if (size == 1) {
+        det = matrix[0][0];
+    } else if (size == 2) {
+        det = matrix[0][0] * matrix[1][1] - matrix[0][1] * matrix[1][0];
     } else {
-        tmp = create_matrix(n - 1);
+        tmp = create_matrix(size - 1);
         sign = 1;
-        for (j = 0; j < n; j++) {
-            minor_matrix(m, tmp, n, 0, j);
-            det += (double)sign * m[0][j] * determinant(tmp, n - 1);
+        for (j = 0; j < size; j++) {
+            minor_matrix(matrix, tmp, size, 0, j);
+            det += (double)sign * matrix[0][j] * determinant(tmp, size - 1);
             sign = -sign;
         }
         free_matrix(tmp);
@@ -2732,37 +2736,62 @@ double determinant(double **m, int n) {
     return det;
 }
 
-/* out = adj(m)^T / det = C^T / det */
-int inverse_matrix(double **m, double **out, int n) {
+/* записывает A^-1 в matrix; 0 — ок, 1 — ошибка (det == 0) */
+int invert(double **matrix, int n, int m) {
     double det;
+    double **out;
     double **tmp;
     int i;
     int j;
     int sign;
     int error;
 
+    (void)m;
     error = 0;
-    det = determinant(m, n);
+    det = determinant(matrix, n);
     if (fabs(det) < EPS) {
         error = 1;
-    } else {
+    }
+    if (error == 0) {
+        out = create_matrix(n);
+        if (out == NULL) {
+            error = 1;
+        }
+    }
+    if (error == 0 && n == 1) {
+        out[0][0] = 1.0 / matrix[0][0];
+    }
+    if (error == 0 && n > 1) {
         tmp = create_matrix(n - 1);
+        if (tmp == NULL) {
+            error = 1;
+        }
+        if (error == 0) {
+            for (i = 0; i < n; i++) {
+                for (j = 0; j < n; j++) {
+                    minor_matrix(matrix, tmp, n, i, j);
+                    sign = ((i + j) % 2 == 0) ? 1 : -1;
+                    out[j][i] = (double)sign * determinant(tmp, n - 1) / det;
+                }
+            }
+            free_matrix(tmp);
+        }
+    }
+    if (error == 0) {
         for (i = 0; i < n; i++) {
             for (j = 0; j < n; j++) {
-                minor_matrix(m, tmp, n, i, j);
-                sign = ((i + j) % 2 == 0) ? 1 : -1;
-                out[j][i] = (double)sign * determinant(tmp, n - 1) / det;
+                matrix[i][j] = out[i][j];
             }
         }
-        free_matrix(tmp);
+        free_matrix(out);
     }
     return error;
 }
 ```
 
-**Как работает.** Сначала вычисляется определитель. Если его модуль меньше заданной точности `EPS`, считается, что обратной матрицы не существует, и возвращается ошибка. При ненулевом определителе для каждой позиции строится минор. Он умножается на знак \((-1)^{i+j}\) и делится на определитель. Результат записывается в позицию `out[j][i]`, то есть сразу в транспонированном виде, как требует формула через присоединённую матрицу. При сборке программы с `fabs` нужно добавить флаг `-lm`.
+**Как работает.** `invert` вычисляет определитель; если он близок к нулю — ошибка. Обратная матрица строится через миноры и алгебраические дополнения (`out[j][i] = sign * det(minor) / det`), затем копируется в `matrix`. `output` печатает матрицу с шестью знаками после запятой.
 
-#### Вариант B. Та же формула, строки выделяются отдельными `malloc`
+#### Вариант B. Тот же API, каждая строка — отдельный `malloc`
 
 ```c
 #include <stdio.h>
@@ -2772,111 +2801,108 @@ int inverse_matrix(double **m, double **out, int n) {
 #define EPS 1e-9
 
 double **create_matrix(int n);
-void free_matrix(double **m, int n);
-int read_matrix(double **m, int n);
-void print_matrix(double **m, int n);
-void minor_matrix(double **m, double **dst, int n, int skip_row, int skip_col);
-double determinant(double **m, int n);
-int inverse_matrix(double **m, double **out, int n);
+void free_matrix(double **matrix, int n);
+
+int input(double **matrix, int *n, int *m);
+void output(double **matrix, int n, int m);
+int invert(double **matrix, int n, int m);
+void minor_matrix(double **matrix, double **dst, int size, int skip_row, int skip_col);
+double determinant(double **matrix, int size);
 
 int main(void) {
-    int rows;
-    int cols;
+    int n;
+    int m;
     double **matrix;
-    double **inv;
     int error;
 
     error = 0;
     matrix = NULL;
-    inv = NULL;
-    rows = 0;
-    if (scanf("%d%d", &rows, &cols) != 2 || rows < 1 || cols < 1 || rows != cols) {
+    if (scanf("%d%d", &n, &m) != 2 || n <= 0 || m <= 0 || n != m) {
         error = 1;
     }
     if (error == 0) {
-        matrix = create_matrix(rows);
-        inv = create_matrix(rows);
-        if (matrix == NULL || inv == NULL) {
+        matrix = create_matrix(n);
+        if (matrix == NULL) {
             error = 1;
-        } else {
-            error = read_matrix(matrix, rows);
         }
     }
     if (error == 0) {
-        error = inverse_matrix(matrix, inv, rows);
+        error = input(matrix, &n, &m);
     }
     if (error == 0) {
-        print_matrix(inv, rows);
+        error = invert(matrix, n, m);
+    }
+    if (error == 0) {
+        output(matrix, n, m);
     } else {
         printf("n/a");
     }
-    free_matrix(matrix, rows);
-    free_matrix(inv, rows);
+    free_matrix(matrix, n);
     return 0;
 }
 
 double **create_matrix(int n) {
-    double **m;
+    double **matrix;
     int i;
     int failed;
 
+    matrix = (double **)malloc((size_t)n * sizeof(double *));
     failed = 0;
-    m = (double **)malloc((size_t)n * sizeof(double *));
-    if (m != NULL) {
+    if (matrix != NULL) {
         for (i = 0; i < n; i++) {
-            m[i] = (double *)malloc((size_t)n * sizeof(double));
-            if (m[i] == NULL) {
+            matrix[i] = (double *)malloc((size_t)n * sizeof(double));
+            if (matrix[i] == NULL) {
                 failed = 1;
             }
         }
         if (failed != 0) {
             for (i = 0; i < n; i++) {
-                free(m[i]);
+                free(matrix[i]);
             }
-            free(m);
-            m = NULL;
+            free(matrix);
+            matrix = NULL;
         }
     }
-    return m;
+    return matrix;
 }
 
-void free_matrix(double **m, int n) {
+void free_matrix(double **matrix, int n) {
     int i;
 
-    if (m != NULL) {
+    if (matrix != NULL) {
         for (i = 0; i < n; i++) {
-            free(m[i]);
+            free(matrix[i]);
         }
-        free(m);
+        free(matrix);
     }
 }
 
-int read_matrix(double **m, int n) {
+int input(double **matrix, int *n, int *m) {
     int i;
     int j;
-    int error;
 
-    error = 0;
-    for (i = 0; i < n; i++) {
-        for (j = 0; j < n; j++) {
-            if (scanf("%lf", &m[i][j]) != 1) {
-                error = 1;
+    (void)m;
+    for (i = 0; i < *n; i++) {
+        for (j = 0; j < *n; j++) {
+            if (scanf("%lf", &matrix[i][j]) != 1) {
+                return 1;
             }
         }
     }
-    return error;
+    return 0;
 }
 
-void print_matrix(double **m, int n) {
+void output(double **matrix, int n, int m) {
     int i;
     int j;
 
+    (void)m;
     for (i = 0; i < n; i++) {
         for (j = 0; j < n; j++) {
             if (j > 0) {
                 printf(" ");
             }
-            printf("%.6f", m[i][j]);
+            printf("%.6f", matrix[i][j]);
         }
         if (i + 1 < n) {
             printf("\n");
@@ -2884,19 +2910,19 @@ void print_matrix(double **m, int n) {
     }
 }
 
-void minor_matrix(double **m, double **dst, int n, int skip_row, int skip_col) {
+void minor_matrix(double **matrix, double **dst, int size, int skip_row, int skip_col) {
     int i;
     int j;
     int ri;
     int ci;
 
     ri = 0;
-    for (i = 0; i < n; i++) {
+    for (i = 0; i < size; i++) {
         if (i != skip_row) {
             ci = 0;
-            for (j = 0; j < n; j++) {
+            for (j = 0; j < size; j++) {
                 if (j != skip_col) {
-                    dst[ri][ci] = m[i][j];
+                    dst[ri][ci] = matrix[i][j];
                     ci++;
                 }
             }
@@ -2905,60 +2931,83 @@ void minor_matrix(double **m, double **dst, int n, int skip_row, int skip_col) {
     }
 }
 
-double determinant(double **m, int n) {
+double determinant(double **matrix, int size) {
     double det;
     double **tmp;
     int j;
     int sign;
 
     det = 0.0;
-    if (n == 1) {
-        det = m[0][0];
-    } else if (n == 2) {
-        det = m[0][0] * m[1][1] - m[0][1] * m[1][0];
+    if (size == 1) {
+        det = matrix[0][0];
+    } else if (size == 2) {
+        det = matrix[0][0] * matrix[1][1] - matrix[0][1] * matrix[1][0];
     } else {
-        tmp = create_matrix(n - 1);
+        tmp = create_matrix(size - 1);
         sign = 1;
-        for (j = 0; j < n; j++) {
-            minor_matrix(m, tmp, n, 0, j);
-            det += (double)sign * m[0][j] * determinant(tmp, n - 1);
+        for (j = 0; j < size; j++) {
+            minor_matrix(matrix, tmp, size, 0, j);
+            det += (double)sign * matrix[0][j] * determinant(tmp, size - 1);
             sign = -sign;
         }
-        free_matrix(tmp, n - 1);
+        free_matrix(tmp, size - 1);
     }
     return det;
 }
 
-int inverse_matrix(double **m, double **out, int n) {
+int invert(double **matrix, int n, int m) {
     double det;
+    double **out;
     double **tmp;
     int i;
     int j;
     int sign;
     int error;
 
+    (void)m;
     error = 0;
-    det = determinant(m, n);
+    det = determinant(matrix, n);
     if (fabs(det) < EPS) {
         error = 1;
-    } else if (n == 1) {
-        out[0][0] = 1.0 / m[0][0];
-    } else {
+    }
+    if (error == 0) {
+        out = create_matrix(n);
+        if (out == NULL) {
+            error = 1;
+        }
+    }
+    if (error == 0 && n == 1) {
+        out[0][0] = 1.0 / matrix[0][0];
+    }
+    if (error == 0 && n > 1) {
         tmp = create_matrix(n - 1);
+        if (tmp == NULL) {
+            error = 1;
+        }
+        if (error == 0) {
+            for (i = 0; i < n; i++) {
+                for (j = 0; j < n; j++) {
+                    minor_matrix(matrix, tmp, n, i, j);
+                    sign = ((i + j) % 2 == 0) ? 1 : -1;
+                    out[j][i] = (double)sign * determinant(tmp, n - 1) / det;
+                }
+            }
+            free_matrix(tmp, n - 1);
+        }
+    }
+    if (error == 0) {
         for (i = 0; i < n; i++) {
             for (j = 0; j < n; j++) {
-                minor_matrix(m, tmp, n, i, j);
-                sign = ((i + j) % 2 == 0) ? 1 : -1;
-                out[j][i] = (double)sign * determinant(tmp, n - 1) / det;
+                matrix[i][j] = out[i][j];
             }
         }
-        free_matrix(tmp, n - 1);
+        free_matrix(out, n);
     }
     return error;
 }
 ```
 
-**Как работает.** Алгоритм совпадает с вариантом A. Дополнительно явно обрабатывается случай матрицы размера 1 на 1: обратный элемент равен `1.0 / m[0][0]`. При компиляции снова нужен флаг `-lm`:
+**Как работает.** Алгоритм совпадает с вариантом A. Память под строки выделяется отдельно; при освобождении миноров и результата нужно передавать размер в `free_matrix`.
 
 ```bash
 gcc -std=c11 -Wall -Werror -Wextra invert.c -o invert -lm
