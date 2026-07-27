@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>D&D 5e — Карточки характеристик</title>
+  <style>
+    @page { size: A4; margin: 8mm; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', Tahoma, sans-serif;
+      padding: 6mm;
+      background: #fff;
+    }
+    h1 {
+      text-align: center;
+      font-size: 12pt;
+      color: #8b0000;
+      margin-bottom: 8px;
+    }
+    .hint {
+      text-align: center;
+      font-size: 8pt;
+      color: #888;
+      margin-bottom: 10px;
+    }
+    .cards-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+    .card {
+      border: 2px dashed #999;
+      border-radius: 8px;
+      padding: 10px;
+      height: 95mm;
+      display: flex;
+      flex-direction: column;
+      break-inside: avoid;
+    }
+    .card-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-bottom: 2px solid #8b0000;
+      padding-bottom: 6px;
+      margin-bottom: 6px;
+    }
+    .card-header .icon { font-size: 28pt; }
+    .card-header .title { font-size: 13pt; font-weight: bold; color: #8b0000; }
+    .card-header .abbr { font-size: 9pt; color: #666; }
+    .card-body { flex: 1; font-size: 8.5pt; line-height: 1.45; }
+    .card-body .section { margin-bottom: 5px; }
+    .card-body .label {
+      font-weight: bold;
+      color: #8b0000;
+      font-size: 7.5pt;
+      text-transform: uppercase;
+    }
+    .card-body .examples {
+      background: #f5f0e8;
+      border-radius: 4px;
+      padding: 4px 6px;
+      font-style: italic;
+      font-size: 8pt;
+      margin-top: auto;
+    }
+    .card.str { border-color: #c0392b; }
+    .card.dex { border-color: #27ae60; }
+    .card.con { border-color: #e74c3c; }
+    .card.int { border-color: #2980b9; }
+    .card.wis { border-color: #8e44ad; }
+    .card.cha { border-color: #f39c12; }
+    @media print {
+      .no-print { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<h1>КАРТОЧКИ ХАРАКТЕРИСТИК D&D 5e</h1>
+<p class="hint">Разрежьте по пунктирным линиям · 6 карточек на лист A4</p>
+
+<div class="cards-grid">
+
+  <div class="card str">
+    <div class="card-header">
+      <span class="icon">💪</span>
+      <div>
+        <div class="title">СИЛА</div>
+        <div class="abbr">Strength · STR</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="section">
+        <div class="label">Что измеряет</div>
+        Физическая мощь, мышцы, грубая сила
+      </div>
+      <div class="section">
+        <div class="label">В бою</div>
+        Тяжёлое оружие: мечи, топоры, булавы
+      </div>
+      <div class="section">
+        <div class="label">Навык</div>
+        Атлетика (лазание, прыжки, плавание)
+      </div>
+      <div class="examples">
+        «Выбить дверь» · «Поднять камень» · «Схватить врага»
+      </div>
+    </div>
+  </div>
+
+  <div class="card dex">
+    <div class="card-header">
+      <span class="icon">🏃</span>
+      <div>
+        <div class="title">ЛОВКОСТЬ</div>
+        <div class="abbr">Dexterity · DEX</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="section">
+        <div class="label">Что измеряет</div>
+        Проворство, реакция, точность движений
+      </div>
+      <div class="section">
+        <div class="label">В бою</div>
+        Луки, рапиры, кинжалы · КД = 10 + мод. Ловкости
+      </div>
+      <div class="section">
+        <div class="label">Навыки</div>
+        Акробатика · Ловкость рук · Скрытность
+      </div>
+      <div class="examples">
+        «Проскользнуть мимо» · «Увернуться» · «Взломать замок»
+      </div>
+    </div>
+  </div>
+
+  <div class="card con">
+    <div class="card-header">
+      <span class="icon">❤️</span>
+      <div>
+        <div class="title">ТЕЛОСЛОЖЕНИЕ</div>
+        <div class="abbr">Constitution · CON</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="section">
+        <div class="label">Что измеряет</div>
+        Выносливость, здоровье, стойкость
+      </div>
+      <div class="section">
+        <div class="label">В бою</div>
+        Хиты = кость хитов + мод. Тел. (каждый уровень!)
+      </div>
+      <div class="section">
+        <div class="label">Спасброски</div>
+        Яд, болезни, удержание концентрации на заклинании
+      </div>
+      <div class="examples">
+        Чем выше — тем больше хитов и живучести
+      </div>
+    </div>
+  </div>
+
+  <div class="card int">
+    <div class="card-header">
+      <span class="icon">🧠</span>
+      <div>
+        <div class="title">ИНТЕЛЛЕКТ</div>
+        <div class="abbr">Intelligence · INT</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="section">
+        <div class="label">Что измеряет</div>
+        Память, логика, образование, знания
+      </div>
+      <div class="section">
+        <div class="label">Магия</div>
+        Заклинания Волшебника
+      </div>
+      <div class="section">
+        <div class="label">Навыки</div>
+        Аркана · История · Магия · Природа · Расследование · Религия
+      </div>
+      <div class="examples">
+        «Вспомнить легенду» · «Найти улику» · «Расшифровать руны»
+      </div>
+    </div>
+  </div>
+
+  <div class="card wis">
+    <div class="card-header">
+      <span class="icon">👁️</span>
+      <div>
+        <div class="title">МУДРОСТЬ</div>
+        <div class="abbr">Wisdom · WIS</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="section">
+        <div class="label">Что измеряет</div>
+        Внимательность, интуиция, сила воли
+      </div>
+      <div class="section">
+        <div class="label">Магия</div>
+        Заклинания Жреца, Друида, Следопыта
+      </div>
+      <div class="section">
+        <div class="label">Навыки</div>
+        Внимательность · Выживание · Медицина · Проницательность · Уход за животными
+      </div>
+      <div class="examples">
+        «Заметить ловушку» · «Понять, что лгут» · «Ориентироваться в лесу»
+      </div>
+    </div>
+  </div>
+
+  <div class="card cha">
+    <div class="card-header">
+      <span class="icon">✨</span>
+      <div>
+        <div class="title">ХАРИЗМА</div>
+        <div class="abbr">Charisma · CHA</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="section">
+        <div class="label">Что измеряет</div>
+        Обаяние, уверенность, лидерство
+      </div>
+      <div class="section">
+        <div class="label">Магия</div>
+        Заклинания Барда, Колдуна, Паладина
+      </div>
+      <div class="section">
+        <div class="label">Навыки</div>
+        Выступление · Запугивание · Обман · Убеждение
+      </div>
+      <div class="examples">
+        «Уговорить стражника» · «Обмануть торговца» · «Выступить перед толпой»
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<p class="no-print" style="text-align:center; margin-top:15px; color:#888; font-size:9pt;">
+  Ctrl+P (Cmd+P) → Печать → Разрежьте по пунктирным линиям
+</p>
+
+</body>
+</html>
