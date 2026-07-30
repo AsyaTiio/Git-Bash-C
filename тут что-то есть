@@ -1,0 +1,616 @@
+# door_struct.h
+
+#ifndef DOOR_STRUCT_H
+#define DOOR_STRUCT_H
+
+struct door {
+    int id;
+    int status;
+};
+
+#endif
+
+---
+
+# Makefile
+
+CC = gcc
+CFLAGS = -Wall -Wextra -Werror -std=c11
+BUILD_DIR = ../build
+SRC_DIR = .
+
+.PHONY: all door_struct list_test stack_test print_module documentation_module clean
+
+all: door_struct list_test stack_test print_module documentation_module
+
+# Quest 1
+door_struct: $(SRC_DIR)/dmanager_module.c $(SRC_DIR)/door_struct.h
+	@mkdir -p $(BUILD_DIR)
+	$(CC) $(CFLAGS) $(SRC_DIR)/dmanager_module.c -o $(BUILD_DIR)/Quest_1
+
+# Quest 2
+list_test: $(SRC_DIR)/list.c $(SRC_DIR)/list_test.c $(SRC_DIR)/list.h $(SRC_DIR)/door_struct.h
+	@mkdir -p $(BUILD_DIR)
+	$(CC) $(CFLAGS) $(SRC_DIR)/list.c $(SRC_DIR)/list_test.c -o $(BUILD_DIR)/Quest_2
+
+# Quest 3
+stack_test: $(SRC_DIR)/stack.c $(SRC_DIR)/stack_test.c $(SRC_DIR)/stack.h
+	@mkdir -p $(BUILD_DIR)
+	$(CC) $(CFLAGS) $(SRC_DIR)/stack.c $(SRC_DIR)/stack_test.c -o $(BUILD_DIR)/Quest_3
+
+# Quest 4 (Добавлен documentation_module.c, так как он теперь вызывается в main)
+print_module: $(SRC_DIR)/main_module_entry_point.c $(SRC_DIR)/print_module.c $(SRC_DIR)/print_module.h $(SRC_DIR)/documentation_module.c $(SRC_DIR)/documentation_module.h
+	@mkdir -p $(BUILD_DIR)
+	$(CC) $(CFLAGS) $(SRC_DIR)/main_module_entry_point.c $(SRC_DIR)/print_module.c $(SRC_DIR)/documentation_module.c -o $(BUILD_DIR)/Quest_4
+
+# Quest 5
+documentation_module: $(SRC_DIR)/main_module_entry_point.c $(SRC_DIR)/print_module.c $(SRC_DIR)/print_module.h $(SRC_DIR)/documentation_module.c $(SRC_DIR)/documentation_module.h
+	@mkdir -p $(BUILD_DIR)
+	$(CC) $(CFLAGS) $(SRC_DIR)/main_module_entry_point.c $(SRC_DIR)/print_module.c $(SRC_DIR)/documentation_module.c -o $(BUILD_DIR)/Quest_5
+
+clean:
+	rm -rf $(BUILD_DIR)
+
+---
+
+# dmanager_module.c
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+
+#include "door_struct.h"
+
+#define DOORS_COUNT 15
+#define MAX_ID_SEED 10000
+
+void initialize_doors(struct door *doors);
+void close_all_doors(struct door *doors, int n);
+void sort_doors(struct door *doors, int n);
+void print_doors(const struct door *doors, int n);
+
+int main() {
+    struct door doors[DOORS_COUNT];
+
+    initialize_doors(doors);
+    sort_doors(doors, DOORS_COUNT);
+    close_all_doors(doors, DOORS_COUNT);
+    print_doors(doors, DOORS_COUNT);
+
+    return 0;
+}
+
+/* Закрывает все двери: status = 0 */
+void close_all_doors(struct door *doors, int n) {
+    for (int i = 0; i < n; i++) {
+        doors[i].status = 0;
+    }
+}
+
+/* Пузырьковая сортировка дверей по возрастанию id */
+void sort_doors(struct door *doors, int n) {
+    for (int i = 0; i < n - 1; i++) {
+        for (int j = 0; j < n - 1 - i; j++) {
+            if (doors[j].id > doors[j + 1].id) {
+                struct door tmp = doors[j];
+                doors[j] = doors[j + 1];
+                doors[j + 1] = tmp;
+            }
+        }
+    }
+}
+
+/* Печатает id и status каждой двери */
+void print_doors(const struct door *doors, int n) {
+    for (int i = 0; i < n; i++) {
+        printf("%d, %d", doors[i].id, doors[i].status);
+        if (i < n - 1) {
+            printf("\n");
+        }
+    }
+}
+
+// Doors initialization function
+// ATTENTION!!!
+// DO NOT CHANGE!
+void initialize_doors(struct door *doors) {
+    srand(time(0));
+
+    int seed = rand() % MAX_ID_SEED;
+    for (int i = 0; i < DOORS_COUNT; i++) {
+        doors[i].id = (i + seed) % DOORS_COUNT;
+        doors[i].status = rand() % 2;
+    }
+}
+
+---
+
+# documentation_module.c
+
+#include "documentation_module.h"
+
+#include <stdarg.h>
+#include <stdlib.h>
+#include <string.h>
+
+/* 1 если документ доступен, иначе 0 */
+int validate(const char *data) {
+    int result = 0;
+    if (data != NULL && strcmp(data, Available_document) == 0) {
+        result = 1;
+    }
+    return result;
+}
+
+/* Применяет validate ко всем документам  */
+int *check_available_documentation_module(int (*validate_cb)(char *), int document_count, ...) {
+    int *mask = NULL;
+
+    if (document_count > 0 && validate_cb != NULL) {
+        mask = (int *)malloc(sizeof(int) * (size_t)document_count);
+        if (mask != NULL) {
+            va_list args;
+            va_start(args, document_count);
+            for (int i = 0; i < document_count; i++) {
+                char *doc = va_arg(args, char *);
+                mask[i] = validate_cb(doc);
+            }
+            va_end(args);
+        }
+    }
+
+    return mask;
+}
+
+---
+
+# documentation_module.h
+
+#ifndef DOCUMENTATION_MODULE_H
+#define DOCUMENTATION_MODULE_H
+
+#include <stdio.h>
+#include <string.h>
+
+#define Documents "Linked lists", "Queues", "Maps", "Binary Trees"
+#define Available_document "Binary Trees"
+#define Documents_count 4
+
+/*
+    input: validation callback, documents count, args with documents names (max 16)
+    output: binary mask of documents availability
+*/
+int *check_available_documentation_module(int (*validate)(char *), int document_count, ...);
+int validate(const char *data);
+
+#endif  // DOCUMENTATION_MODULE_H
+
+---
+
+# list.c
+
+#include "list.h"
+
+#include <stdlib.h>
+
+/* Cоздаtт первый узел списка из вдери */
+struct node *init(struct door door) {
+    struct node *node = (struct node *)malloc(sizeof(struct node));
+    if (node != NULL) {
+        node->door = door;
+        node->next = NULL;
+    }
+    return node;
+}
+
+/* Вставляет новую дверь сразу после узла elem */
+struct node *add_door(struct node *elem, struct door door) {
+    struct node *node = NULL;
+
+    if (elem != NULL) {
+        node = init(door);
+        if (node != NULL) {
+            node->next = elem->next;
+            elem->next = node;
+        }
+    }
+
+    return node;
+}
+
+/* Ищет узел с заданным id */
+struct node *find_door(int door_id, struct node *root) {
+    struct node *cur = root;
+
+    while (cur != NULL && cur->door.id != door_id) {
+        cur = cur->next;
+    }
+
+    return cur;
+}
+
+/* Удаляет узел elem, возвращает корень списка */
+struct node *remove_door(struct node *elem, struct node *root) {
+    struct node *result = root;
+
+    if (elem != NULL && root != NULL) {
+        if (root == elem) {
+            result = root->next;
+            free(elem);
+        } else {
+            struct node *cur = root;
+            while (cur != NULL && cur->next != elem) {
+                cur = cur->next;
+            }
+            if (cur != NULL) {
+                cur->next = elem->next;
+                free(elem);
+            }
+        }
+    }
+
+    return result;
+}
+
+/* Освобождает всю цепочку узлов */
+void destroy(struct node *root) {
+    struct node *cur = root;
+
+    while (cur != NULL) {
+        struct node *next = cur->next;
+        free(cur);
+        cur = next;
+    }
+}
+
+---
+
+# list.h
+
+#ifndef LIST_H
+#define LIST_H
+
+#include "door_struct.h"
+
+#define SUCCESS 1
+#define FAIL 0
+
+struct node {
+    struct door door;
+    struct node *next;
+};
+
+struct node *init(struct door door);
+struct node *add_door(struct node *elem, struct door door);
+struct node *find_door(int door_id, struct node *root);
+struct node *remove_door(struct node *elem, struct node *root);
+void destroy(struct node *root);
+
+#endif
+
+---
+
+# list_test.c
+
+#include "list.h"
+
+#include <stdio.h>
+
+int add_door_test(void);
+int remove_door_test(void);
+
+int main(void) {
+    if (add_door_test() == SUCCESS) {
+        printf("SUCCESS\n");
+    } else {
+        printf("FAIL\n");
+    }
+
+    if (remove_door_test() == SUCCESS) {
+        printf("SUCCESS");
+    } else {
+        printf("FAIL");
+    }
+
+    return 0;
+}
+
+/* Проверяет вставку узла после головы */
+int add_door_test(void) {
+    struct door d0 = {0, 0};
+    struct door d1 = {1, 0};
+    struct door d2 = {2, 0};
+
+    struct node *root = init(d0);
+    if (root == NULL) return FAIL;
+
+    struct node *first = init(d1);
+    if (first == NULL) {
+        destroy(root);
+        return FAIL;
+    }
+    root->next = first;
+
+    struct node *added = add_door(root, d2);
+    int result = FAIL;
+    const struct node *check_node = added;
+
+    if (added != NULL && root->next == added && check_node->door.id == 2 && check_node->next != NULL &&
+        check_node->next->door.id == 1) {
+        result = SUCCESS;
+    }
+
+    destroy(root);
+    return result;
+}
+
+/* Проверяет удаление среднего узла */
+int remove_door_test(void) {
+    struct door d0 = {0, 0};
+    struct door d1 = {1, 0};
+    struct door d2 = {2, 0};
+
+    struct node *root = init(d0);
+    if (root == NULL) return FAIL;
+
+    struct node *mid = add_door(root, d1);
+    if (mid == NULL) {
+        destroy(root);
+        return FAIL;
+    }
+
+    struct node *tail = add_door(mid, d2);
+    if (tail == NULL) {
+        destroy(root);
+        return FAIL;
+    }
+
+    const struct node *check_tail = tail;
+    root = remove_door(mid, root);
+
+    int result = FAIL;
+    if (root != NULL && root->next == (struct node *)check_tail && find_door(1, root) == NULL) {
+        result = SUCCESS;
+    }
+
+    destroy(root);
+    return result;
+}
+
+---
+
+# main_module_entry_point.c
+
+#include <stdio.h>
+#include <stdlib.h>
+
+#include "documentation_module.h"
+#include "print_module.h"
+
+int main(void) {
+    print_log(print_char, Module_load_success_message);
+
+    int *availability_mask = check_available_documentation_module(validate, Documents_count, Documents);
+    if (availability_mask != NULL) {
+        const char *const docs[] = {Documents};
+        for (int i = 0; i < Documents_count; i++) {
+            const char *status = availability_mask[i] ? "available" : "unavailable";
+            printf("[%-15s : %s]\n", docs[i], status);
+        }
+        free(availability_mask);
+    }
+
+    return 0;
+}
+
+---
+
+# print_module.c
+
+#include "print_module.h"
+
+#include <stdio.h>
+#include <time.h>
+
+/* Печать символа с явным привеедением типа */
+char print_char(char ch) {
+    putchar((int)ch);
+    return ch;
+}
+
+/* Печать строки посимвольно колбэком */
+void print_string(char (*print)(char), const char *s) {
+    for (int i = 0; s[i] != '\0'; i++) {
+        print(s[i]);
+    }
+}
+
+/* [LOG] HH:MM:SS message */
+void print_log(char (*print)(char), const char *message) {
+    print_string(print, Log_prefix);
+    print(' ');
+
+    time_t now = time(NULL);
+    const struct tm *t = localtime(&now);
+    if (t != NULL) {
+        char time_buf[16];  // Перенесено внутрь блока if
+        strftime(time_buf, sizeof(time_buf), "%H:%M:%S", t);
+        print_string(print, time_buf);
+    }
+
+    print(' ');
+    if (message != NULL) {
+        print_string(print, message);
+    }
+}
+
+---
+
+# print_module.h
+
+#ifndef PRINT_MODULE_H
+#define PRINT_MODULE_H
+
+#define Module_load_success_message "Output stream module load: success\n"
+#define Log_prefix "[LOG]"
+
+void print_log(char (*print)(char), const char *message);
+char print_char(char ch);
+
+#endif  // PRINT_MODULE_H
+
+---
+
+# stack.c
+
+#include "stack.h"
+
+#include <stdlib.h>
+
+/* Инициализация управляющей структуры стека */
+struct stack *init(void) {
+    struct stack *s = (struct stack *)malloc(sizeof(struct stack));
+    if (s != NULL) {
+        s->top = NULL;
+    }
+    return s;
+}
+
+/* Добавление элемента на вершину стека */
+int push(struct stack *s, int val) {
+    if (s == NULL) return FAIL;
+
+    struct node *new_node = (struct node *)malloc(sizeof(struct node));
+    if (new_node == NULL) return FAIL;
+
+    new_node->value = val;
+    new_node->next = s->top;
+    s->top = new_node;
+
+    return SUCCESS;
+}
+
+/* Снятие элемента с вершины стека */
+int pop(struct stack *s, int *val) {
+    if (s == NULL || s->top == NULL || val == NULL) return FAIL;
+
+    struct node *temp = s->top;
+    *val = temp->value;
+    s->top = temp->next;
+    free(temp);
+
+    return SUCCESS;
+}
+
+/* Освобождение всей памяти, занимаемой стеком */
+void destroy(struct stack *s) {
+    if (s == NULL) return;
+
+    struct node *cur = s->top;
+    while (cur != NULL) {
+        struct node *next = cur->next;
+        free(cur);
+        cur = next;
+    }
+    free(s);
+}
+
+---
+
+# stack.h
+
+#ifndef STACK_H
+#define STACK_H
+
+#define SUCCESS 1
+#define FAIL 0
+
+struct node {
+    int value;
+    struct node *next;
+};
+
+struct stack {
+    struct node *top;
+};
+
+struct stack *init(void);
+int push(struct stack *s, int val);
+int pop(struct stack *s, int *val);
+void destroy(struct stack *s);
+
+#endif
+
+---
+
+# stack_test.c
+
+#include "stack.h"
+
+#include <stdio.h>
+
+int test_push(void);
+int test_pop(void);
+
+int main(void) {
+    if (test_push() == SUCCESS) {
+        printf("SUCCESS\n");
+    } else {
+        printf("FAIL\n");
+    }
+
+    if (test_pop() == SUCCESS) {
+        printf("SUCCESS");
+    } else {
+        printf("FAIL");
+    }
+
+    return 0;
+}
+
+/* Тест операции push */
+int test_push(void) {
+    struct stack *s = init();
+    if (s == NULL) return FAIL;
+
+    if (push(s, 42) != SUCCESS || push(s, 21) != SUCCESS) {
+        destroy(s);
+        return FAIL;
+    }
+
+    int result = FAIL;
+    const struct stack *check_stack = s;
+
+    if (check_stack->top != NULL && check_stack->top->value == 21 && check_stack->top->next != NULL &&
+        check_stack->top->next->value == 42) {
+        result = SUCCESS;
+    }
+
+    destroy(s);
+    return result;
+}
+
+/* Тест операции pop */
+int test_pop(void) {
+    struct stack *s = init();
+    if (s == NULL) return FAIL;
+
+    push(s, 10);
+    push(s, 20);
+
+    int val1 = 0;
+    int val2 = 0;
+    int res1 = pop(s, &val1);
+    int res2 = pop(s, &val2);
+
+    int result = FAIL;
+    if (res1 == SUCCESS && val1 == 20 && res2 == SUCCESS && val2 == 10) {
+        const struct stack *check_stack = s;
+        if (check_stack->top == NULL) {
+            result = SUCCESS;
+        }
+    }
+
+    destroy(s);
+    return result;
+}
